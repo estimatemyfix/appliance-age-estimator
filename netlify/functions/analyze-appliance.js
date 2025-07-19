@@ -61,12 +61,60 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get custom question if provided
+    // Get custom question if provided - try multiple field access methods
     console.log('All form fields received:', result.fields); // Debug log
-    const customQuestion = result.fields?.custom_question || '';
-    const totalFiles = parseInt(result.fields?.total_files || '1');
     
-    console.log('Custom question received:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
+    // Try different ways to get the custom question (multipart parsers can be finicky)
+    let customQuestion = '';
+    if (result.fields) {
+      customQuestion = result.fields.custom_question || 
+                      result.fields['custom_question'] || 
+                      result.fields.customQuestion ||
+                      result.fields['customQuestion'] || '';
+    }
+    
+    // If still no question, check if it's in a different format
+    if (!customQuestion && result.fields) {
+      // Sometimes fields come as arrays
+      if (Array.isArray(result.fields.custom_question)) {
+        customQuestion = result.fields.custom_question[0] || '';
+      } else if (Array.isArray(result.fields.question)) {
+        customQuestion = result.fields.question[0] || '';
+      }
+      // Also try the other field names we send
+      if (!customQuestion) {
+        customQuestion = result.fields.question || result.fields.customQuestion || '';
+      }
+    }
+    
+    const totalFiles = parseInt(result.fields?.total_files || result.fields?.totalFiles || '1');
+    
+    // FALLBACK: If multipart parser failed, try to extract from raw body
+    if (!customQuestion && event.body) {
+      console.log('Trying to extract question from raw body...'); // Debug log
+      try {
+        const bodyText = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString() : event.body;
+        
+        // Look for custom question in the raw multipart data
+        const questionMatches = [
+          bodyText.match(/name="custom_question"[^]*?Content-Type: text\/plain[^]*?\r?\n\r?\n([^]*?)\r?\n--/),
+          bodyText.match(/name="customQuestion"[^]*?\r?\n\r?\n([^]*?)\r?\n--/),
+          bodyText.match(/name="question"[^]*?\r?\n\r?\n([^]*?)\r?\n--/)
+        ];
+        
+        for (const match of questionMatches) {
+          if (match && match[1] && match[1].trim()) {
+            customQuestion = match[1].trim();
+            console.log('Found custom question in raw body:', customQuestion); // Debug log
+            break;
+          }
+        }
+      } catch (error) {
+        console.log('Error parsing raw body:', error.message); // Debug log
+      }
+    }
+
+    console.log('Final custom question:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
     console.log('Number of files received:', result.files.length); // Debug log
 
     // TEMPORARY: Skip payment verification for testing - REMOVE THIS LATER

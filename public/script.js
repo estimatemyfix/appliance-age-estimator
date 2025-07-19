@@ -319,11 +319,15 @@ async function analyzeAppliance() {
             console.log(`Adding photo ${index + 1}:`, file.name); // Debug log
         });
         
-        // Add custom question if provided
+        // Add custom question if provided - try multiple field names to ensure it gets through
         const question = customQuestion.value.trim();
         if (question) {
+            // Add the question with multiple field names to ensure multipart parser catches it
             formData.append('custom_question', question);
+            formData.append('customQuestion', question); // Camel case version
+            formData.append('question', question); // Shorter version
             console.log('Adding custom question:', question); // Debug log
+            console.log('Question length:', question.length); // Debug log
         } else {
             console.log('No custom question provided'); // Debug log
         }
