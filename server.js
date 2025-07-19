@@ -63,10 +63,23 @@ app.post('/analyze-appliance', upload.array('photos', 5), async (req, res) => {
       console.log('TESTING MODE: Skipping payment verification');
     }
 
-    // Get custom question if provided
+    // Get custom question from URL parameter (more reliable than multipart body)
+    console.log('Request query parameters:', req.query); // Debug log
     console.log('Request body fields:', req.body); // Debug log
-    const customQuestion = req.body.custom_question || '';
-    console.log('Custom question received:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
+    
+    let customQuestion = '';
+    
+    // Try URL parameter first (most reliable)
+    if (req.query.custom_question) {
+      customQuestion = decodeURIComponent(req.query.custom_question);
+      console.log('Found custom question in URL:', customQuestion); // Debug log
+    } else {
+      // Fallback to body (less reliable with multipart)
+      customQuestion = req.body.custom_question || '';
+      console.log('Found custom question in body:', customQuestion); // Debug log
+    }
+    
+    console.log('Final custom question:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
     
     // Process all uploaded files
     const imageContents = [];

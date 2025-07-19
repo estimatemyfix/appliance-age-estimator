@@ -319,15 +319,18 @@ async function analyzeAppliance() {
             console.log(`Adding photo ${index + 1}:`, file.name); // Debug log
         });
         
-        // Add custom question if provided - try multiple field names to ensure it gets through
+        // NUCLEAR OPTION: Encode custom question in URL parameter instead of multipart body
         const question = customQuestion.value.trim();
+        let endpoint = window.location.hostname.includes('netlify') || window.location.hostname.includes('localhost') === false
+            ? '/.netlify/functions/analyze-appliance' 
+            : '/analyze-appliance';
+            
         if (question) {
-            // Add the question with multiple field names to ensure multipart parser catches it
-            formData.append('custom_question', question);
-            formData.append('customQuestion', question); // Camel case version
-            formData.append('question', question); // Shorter version
-            console.log('Adding custom question:', question); // Debug log
-            console.log('Question length:', question.length); // Debug log
+            // Encode the question in the URL to bypass multipart parsing issues
+            const encodedQuestion = encodeURIComponent(question);
+            endpoint += `?custom_question=${encodedQuestion}`;
+            console.log('Adding custom question to URL:', question); // Debug log
+            console.log('Encoded URL:', endpoint); // Debug log
         } else {
             console.log('No custom question provided'); // Debug log
         }
@@ -335,11 +338,7 @@ async function analyzeAppliance() {
         formData.append('payment_intent_id', currentPaymentIntentId);
         formData.append('total_files', currentFiles.length.toString());
         
-        // Try Netlify function first, fallback to local server
-        const endpoint = window.location.hostname.includes('netlify') || window.location.hostname.includes('localhost') === false
-            ? '/.netlify/functions/analyze-appliance' 
-            : '/analyze-appliance';
-            
+        // Use the endpoint with encoded question (if any)
         const response = await fetch(endpoint, {
             method: 'POST',
             body: formData
