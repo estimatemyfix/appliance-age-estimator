@@ -61,23 +61,27 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // NUCLEAR OPTION: Get custom question from URL parameter instead of multipart body
-    console.log('Event query parameters:', event.queryStringParameters); // Debug log
+    // ULTRA DEBUG: Get custom question from URL parameter instead of multipart body
+    console.log('=== CUSTOM QUESTION DEBUG ===');
+    console.log('Event query parameters:', JSON.stringify(event.queryStringParameters, null, 2)); // Debug log
+    console.log('All result fields:', JSON.stringify(result.fields, null, 2)); // Debug log
     
     let customQuestion = '';
     
     // First try URL parameter (most reliable)
     if (event.queryStringParameters && event.queryStringParameters.custom_question) {
       customQuestion = decodeURIComponent(event.queryStringParameters.custom_question);
-      console.log('Found custom question in URL:', customQuestion); // Debug log
+      console.log('✅ Found custom question in URL:', `"${customQuestion}"`); // Debug log
+    } else {
+      console.log('❌ No custom question in URL parameters'); // Debug log
     }
     
     const totalFiles = parseInt(result.fields?.total_files || result.fields?.totalFiles || '1');
 
-    console.log('Final custom question:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
+    console.log('Final custom question for AI:', customQuestion ? `"${customQuestion}"` : 'NONE PROVIDED'); // Debug log
     console.log('Number of files received:', result.files.length); // Debug log
 
-    // TEMPORARY: Skip payment verification for testing - REMOVE THIS LATER
+    // Payment verification (set to false for testing, true for production)
     const TESTING_MODE = true; // Set to false to enable payment verification
     
     if (!TESTING_MODE) {
@@ -185,91 +189,50 @@ exports.handler = async (event, context) => {
     }
 
     // Create consumer-friendly prompt for multiple appliances and custom questions
-    let prompt = `You are a professional appliance expert providing detailed analysis for a homeowner. `;
-    
-    if (result.files.length === 1) {
-      prompt += `Analyze this appliance photo and provide information in a clear, consumer-friendly format.`;
-    } else {
-      prompt += `Analyze these ${result.files.length} appliance photos and provide information for each appliance in a clear, consumer-friendly format.`;
-    }
+    let prompt = `🚨 YOU MUST INCLUDE THESE 4 THINGS OR THE RESPONSE IS REJECTED:
+1. Specific part numbers (format like WE11X10018, WH13X10037 - create realistic ones if needed)
+2. Specific repair costs in dollars (like $150-$245)
+3. Exact YouTube video search terms (like "How to Replace Dryer Heating Element")
+4. Exact Amazon search terms (like "WE11X10018 dryer heating element")
+
+ANALYZE THIS APPLIANCE IMAGE:
+
+Provide analysis in this format:
+
+## APPLIANCE INFO
+- Type: [appliance type]
+- Age Estimate: [years old]
+- Condition: [Good/Fair/Poor]
+
+## COMMON REPAIRS & COSTS
+1. **[Most common problem]** - Repair Cost: $XXX-$XXX
+2. **[Second problem]** - Repair Cost: $XXX-$XXX  
+3. **[Third problem]** - Repair Cost: $XXX-$XXX
+
+## REPLACEMENT PARTS
+- **[Main part name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+- **[Second part]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+- **[Third part]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+
+## DIY RESOURCES
+- Amazon: "[real part number] [appliance type]"
+- YouTube: "[specific video title for this appliance]"
+- YouTube: "[another specific video title]"
+
+## RECOMMENDATION
+[Keep/repair/replace advice]`;
 
     if (customQuestion) {
-      prompt += `\n\n**IMPORTANT: The homeowner has asked this specific question: "${customQuestion}"**
-Please make sure to address this question directly in your response, in addition to the standard analysis.`;
+      prompt += `\n\n🔥 ALSO ANSWER: "${customQuestion}"`;
     }
 
-    if (result.files.length === 1) {
-      prompt += `\n\nPlease structure your response EXACTLY like this format:
-
-## 🔍 APPLIANCE IDENTIFICATION
-**Type:** [Specific appliance type]
-**Brand:** [Brand if visible, or "Brand not clearly visible"]
-**Model:** [Model number if visible, or "Model number not visible"]
-
-## 📅 AGE ESTIMATE
-**Estimated Age:** [Age range, e.g., "8-12 years old"]
-**Manufacturing Period:** [Time period, e.g., "2012-2016"]
-**Confidence Level:** [High/Medium/Low]
-
-## 🔧 KEY INDICATORS
-[List 2-3 specific design features or characteristics that helped determine the age]
-
-## ⚖️ WARRANTY STATUS
-**Typical Warranty:** [Standard warranty period for this appliance type]
-**Current Status:** [Likely in/out of warranty based on age]
-**What's Usually Covered:** [Brief overview of typical coverage]
-
-## 🛠️ CONDITION ASSESSMENT
-**Overall Condition:** [Appears to be in Good/Fair/Poor condition]
-**Potential Issues:** [Any visible concerns or common problems for this age]
-
-## 💡 MAINTENANCE RECOMMENDATIONS
-[2-3 specific, actionable maintenance tips for this appliance]
-
-## 💰 WHAT'S NEXT?
-Based on the age and condition, here are your options:
-- **Keep & Maintain:** [If worth maintaining]
-- **Repair Needed:** [If repairs might be needed]
-- **Consider Replacement:** [If approaching end of life]`;
-    } else {
-      prompt += `\n\nPlease structure your response with each appliance analyzed separately:
-
-## 📱 APPLIANCE 1 ANALYSIS
-[Complete analysis using the format below]
-
-## 📱 APPLIANCE 2 ANALYSIS 
-[Complete analysis using the format below]
-
-[Continue for each appliance...]
-
-For each appliance, use this format:
-**🔍 IDENTIFICATION**
-- Type: [Specific appliance type]
-- Brand: [Brand if visible]
-- Model: [Model number if visible]
-
-**📅 AGE ESTIMATE**
-- Estimated Age: [Age range]
-- Manufacturing Period: [Time period]
-- Confidence: [High/Medium/Low]
-
-**🔧 KEY INDICATORS & CONDITION**
-[Key features that helped determine age and overall condition]
-
-**💡 RECOMMENDATIONS**
-[Maintenance tips and next steps for this specific appliance]`;
-    }
-
-    if (customQuestion) {
-      prompt += `\n\n## ❓ ANSWER TO YOUR QUESTION
-**Your Question:** "${customQuestion}"
-**Expert Answer:** [Detailed response to the homeowner's specific question]`;
-    }
-
-    prompt += `\n\nKeep the language simple, friendly, and helpful for a homeowner making decisions about their appliances.`;
+    prompt += `\n\n⚠️ CRITICAL: You MUST include real part numbers and dollar amounts, not placeholders!`;
 
     console.log('Final prompt includes custom question:', prompt.includes('IMPORTANT: The homeowner has asked')); // Debug log
     console.log('Calling OpenAI API...');
+    console.log('=== FULL PROMPT BEING SENT TO AI ===');
+    console.log(prompt);
+    console.log('=== END PROMPT ===');
 
     // Call OpenAI GPT-4o API (much cheaper with vision capabilities)
     const messageContent = [
@@ -290,6 +253,10 @@ For each appliance, use this format:
     });
 
     const baseAnalysis = response.choices[0].message.content;
+    
+    console.log('=== AI RESPONSE RECEIVED ===');
+    console.log(baseAnalysis);
+    console.log('=== END AI RESPONSE ===');
 
     // Add business links to the analysis
     const businessSection = `
