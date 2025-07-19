@@ -398,6 +398,24 @@ function formatAnalysisText(text) {
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         // Convert [link](url) to proper links
         .replace(/\[(.+?)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        // Convert YouTube URLs to embedded thumbnails
+        .replace(/https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/g, function(match, videoId) {
+            return `<div class="youtube-video">
+                <a href="${match}" target="_blank" class="youtube-link">
+                    <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" 
+                         alt="YouTube Video Thumbnail" 
+                         class="youtube-thumbnail">
+                    <div class="play-button">▶</div>
+                </a>
+                <div class="youtube-url">${match}</div>
+            </div>`;
+        })
+        // Convert Amazon links to buttons
+        .replace(/(🛒\s*\*\*Amazon:\*\*\s*)(https:\/\/www\.amazon\.com\/s\?k=[^<\s]+)/g,
+            '$1<a href="$2" target="_blank" class="purchase-btn amazon-btn">🛒 Buy on Amazon</a>')
+        // Convert eBay links to buttons  
+        .replace(/(🛒\s*\*\*eBay:\*\*\s*)(https:\/\/www\.ebay\.com\/sch\/[^<\s]+)/g,
+            '$1<a href="$2" target="_blank" class="purchase-btn ebay-btn">🛒 Buy on eBay</a>')
         // Convert bullet points
         .replace(/^- (.+)$/gm, '<li>$1</li>')
         // Handle dividers

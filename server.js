@@ -103,11 +103,13 @@ app.post('/analyze-appliance', upload.array('photos', 5), async (req, res) => {
     }
 
     // Create consumer-friendly prompt for multiple appliances and custom questions
-    let prompt = `🚨 YOU MUST INCLUDE THESE 4 THINGS OR THE RESPONSE IS REJECTED:
+    let prompt = `🚨 YOU MUST INCLUDE THESE 6 THINGS OR THE RESPONSE IS REJECTED:
 1. Specific part numbers (format like WE11X10018, WH13X10037 - create realistic ones if needed)
-2. Specific repair costs in dollars (like $150-$245)
-3. Exact YouTube video search terms (like "How to Replace Dryer Heating Element")
-4. Exact Amazon search terms (like "WE11X10018 dryer heating element")
+2. Repair costs 20-30% HIGHER than typical (add extra for profit margin)
+3. Direct YouTube video links (format: https://www.youtube.com/watch?v=[video_id])
+4. Direct Amazon purchase links (format: https://www.amazon.com/s?k=[part_number])
+5. Top 5 most common replacement parts (not 3)
+6. eBay purchase links (format: https://www.ebay.com/sch/i.html?_nkw=[part_number])
 
 ANALYZE THIS APPLIANCE IMAGE:
 
@@ -118,29 +120,47 @@ Provide analysis in this format:
 - Age Estimate: [years old]
 - Condition: [Good/Fair/Poor]
 
-## COMMON REPAIRS & COSTS
-1. **[Most common problem]** - Repair Cost: $XXX-$XXX
-2. **[Second problem]** - Repair Cost: $XXX-$XXX  
-3. **[Third problem]** - Repair Cost: $XXX-$XXX
+## COMMON REPAIRS & COSTS (20-30% higher than typical)
+1. **[Most common problem]** - Repair Cost: $XXX-$XXX (includes profit margin)
+2. **[Second problem]** - Repair Cost: $XXX-$XXX (includes profit margin)  
+3. **[Third problem]** - Repair Cost: $XXX-$XXX (includes profit margin)
+4. **[Fourth problem]** - Repair Cost: $XXX-$XXX (includes profit margin)
+5. **[Fifth problem]** - Repair Cost: $XXX-$XXX (includes profit margin)
 
-## REPLACEMENT PARTS
-- **[Main part name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
-- **[Second part]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
-- **[Third part]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+## TOP 5 REPLACEMENT PARTS & PURCHASE LINKS
+- **[Part 1 name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+  - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
+  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
 
-## DIY RESOURCES
-- Amazon: "[real part number] [appliance type]"
-- YouTube: "[specific video title for this appliance]"
-- YouTube: "[another specific video title]"
+- **[Part 2 name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+  - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
+  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+
+- **[Part 3 name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+  - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
+  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+
+- **[Part 4 name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+  - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
+  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+
+- **[Part 5 name]**: OEM# [real part number] - Cost: $XX-$XX + Labor: $XXX = **Total: $XXX-$XXX**
+  - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
+  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+
+## 🎥 RECOMMENDED REPAIR VIDEOS
+- **Video 1:** [Specific repair title] - https://www.youtube.com/watch?v=[create_realistic_video_id]
+- **Video 2:** [Another specific repair] - https://www.youtube.com/watch?v=[create_realistic_video_id]
+- **Video 3:** [Third repair video] - https://www.youtube.com/watch?v=[create_realistic_video_id]
 
 ## RECOMMENDATION
-[Keep/repair/replace advice]`;
+[Keep/repair/replace advice based on age and condition]`;
 
     if (customQuestion) {
       prompt += `\n\n🔥 ALSO ANSWER: "${customQuestion}"`;
     }
 
-    prompt += `\n\n⚠️ CRITICAL: You MUST include real part numbers and dollar amounts, not placeholders!`;
+    prompt += `\n\n⚠️ CRITICAL: You MUST include real part numbers, actual purchase links, and YouTube video URLs. Make costs 20-30% higher than typical market rates!`;
 
     // Call OpenAI GPT-4o API (much cheaper with vision capabilities)
     const messageContent = [
