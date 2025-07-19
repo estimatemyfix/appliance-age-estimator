@@ -48,6 +48,77 @@ body {
     font-weight: 400;
 }
 
+/* Benefits Section */
+.benefits-section {
+    margin-bottom: 50px;
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.benefits-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.benefit-card {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.benefit-card:hover {
+    border-color: #667eea;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+}
+
+.benefit-icon {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.benefit-card h3 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.benefit-card p {
+    color: #666;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.pricing-highlight {
+    text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+}
+
+.pricing-highlight p {
+    margin: 0;
+}
+
 /* Main Content */
 .main-content {
     flex: 1;
@@ -744,23 +815,24 @@ body {
 /* YouTube Search Button */
 .youtube-search-btn {
     display: inline-block;
-    padding: 8px 16px;
+    padding: 10px 18px;
     margin: 5px 10px 5px 0;
     border-radius: 6px;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
+    font-weight: 700;
+    font-size: 15px;
     background: #4285f4;
     color: white;
     transition: all 0.3s ease;
     border: none;
     cursor: pointer;
+    box-shadow: 0 3px 10px rgba(66, 133, 244, 0.2);
 }
 
 .youtube-search-btn:hover {
     background: #3367d6;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
 }
 
 /* Purchase Buttons */
@@ -780,21 +852,29 @@ body {
 .amazon-btn {
     background: #ff9900;
     color: white;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 10px 18px;
+    box-shadow: 0 3px 10px rgba(255, 153, 0, 0.2);
 }
 
 .amazon-btn:hover {
     background: #e88700;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(255, 153, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 153, 0, 0.4);
 }
 
 .ebay-btn {
     background: #0064d2;
     color: white;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 10px 18px;
+    box-shadow: 0 3px 10px rgba(0, 100, 210, 0.2);
 }
 
 .ebay-btn:hover {
     background: #0056b3;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 100, 210, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 100, 210, 0.4);
 } 
