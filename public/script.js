@@ -2,10 +2,9 @@
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
 const previewSection = document.getElementById('previewSection');
-const previewImage = document.getElementById('previewImage');
-const fileName = document.getElementById('fileName');
-const fileSize = document.getElementById('fileSize');
-const removeBtn = document.getElementById('removeBtn');
+const imagesGrid = document.getElementById('imagesGrid');
+const fileCount = document.getElementById('fileCount');
+const customQuestion = document.getElementById('customQuestion');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const paymentSection = document.getElementById('paymentSection');
 const backToPreviewBtn = document.getElementById('backToPreview');
@@ -20,7 +19,8 @@ const retryBtn = document.getElementById('retryBtn');
 const newAnalysisBtn = document.getElementById('newAnalysisBtn');
 const uploadSection = document.getElementById('uploadSection');
 
-let currentFile = null;
+let currentFiles = [];
+const MAX_FILES = 5;
 let currentPaymentIntentId = null;
 
 // Initialize Stripe (using config file)
@@ -72,7 +72,6 @@ function initializeEventListeners() {
     uploadArea.addEventListener('drop', handleDrop);
     
     // Button clicks
-    removeBtn.addEventListener('click', removeFile);
     analyzeBtn.addEventListener('click', showPaymentForm);
     backToPreviewBtn.addEventListener('click', backToPreview);
     retryBtn.addEventListener('click', retryAnalysis);
@@ -108,54 +107,116 @@ function handleDragLeave(e) {
 
 function handleDrop(e) {
     uploadArea.classList.remove('drag-over');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        handleFile(files[0]);
-    }
+    const files = Array.from(e.dataTransfer.files);
+    handleFiles(files);
 }
 
 function handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (file) {
-        handleFile(file);
-    }
+    const files = Array.from(e.target.files);
+    handleFiles(files);
 }
 
-function handleFile(file) {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-        showError('Please select a valid image file.');
-        return;
+function handleFiles(files) {
+    // Filter valid image files
+    const validFiles = files.filter(file => {
+        if (!file.type.startsWith('image/')) {
+            showNotification(`${file.name} is not a valid image file`, 'error');
+            return false;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showNotification(`${file.name} is too large (max 10MB)`, 'error');
+            return false;
+        }
+        return true;
+    });
+    
+    // Check total file limit
+    const totalFiles = currentFiles.length + validFiles.length;
+    if (totalFiles > MAX_FILES) {
+        const remainingSlots = MAX_FILES - currentFiles.length;
+        showNotification(`You can only upload ${MAX_FILES} images total. ${remainingSlots} slots remaining.`, 'error');
+        validFiles.splice(remainingSlots);
     }
     
-    // Validate file size (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-        showError('File size too large. Please select an image smaller than 10MB.');
-        return;
+    // Add valid files to current files
+    validFiles.forEach(file => {
+        if (currentFiles.length < MAX_FILES) {
+            currentFiles.push(file);
+        }
+    });
+    
+    if (currentFiles.length > 0) {
+        displayFilePreviews();
     }
     
-    currentFile = file;
-    displayFilePreview(file);
+    // Clear the input so the same files can be selected again if needed
+    fileInput.value = '';
 }
 
-function displayFilePreview(file) {
-    const reader = new FileReader();
+function displayFilePreviews() {
+    // Clear existing previews
+    imagesGrid.innerHTML = '';
     
-    reader.onload = function(e) {
-        previewImage.src = e.target.result;
-        fileName.textContent = `📁 ${file.name}`;
-        fileSize.textContent = `📏 ${formatFileSize(file.size)}`;
+    // Create preview for each file
+    currentFiles.forEach((file, index) => {
+        const reader = new FileReader();
         
-        // Hide upload area and show preview
-        uploadArea.style.display = 'none';
-        previewSection.style.display = 'block';
+        reader.onload = function(e) {
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'image-preview';
+            previewDiv.innerHTML = `
+                <img src="${e.target.result}" alt="Appliance ${index + 1}">
+                <div class="preview-overlay">
+                    <button class="remove-btn" onclick="removeFile(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="file-info">
+                    ${file.name} (${formatFileSize(file.size)})
+                </div>
+            `;
+            imagesGrid.appendChild(previewDiv);
+        };
         
-        // Hide other sections
+        reader.readAsDataURL(file);
+    });
+    
+    // Update file count
+    updateFileCount();
+    
+    // Show preview section
+    uploadArea.style.display = 'none';
+    previewSection.style.display = 'block';
+    hideAllSections();
+}
+
+// Make removeFile global so it can be called from onclick handlers
+window.removeFile = function(index) {
+    currentFiles.splice(index, 1);
+    
+    if (currentFiles.length === 0) {
+        // Show upload area again
+        uploadArea.style.display = 'block';
+        previewSection.style.display = 'none';
         hideAllSections();
-    };
-    
-    reader.readAsDataURL(file);
+    } else {
+        // Refresh previews
+        displayFilePreviews();
+    }
 }
+
+function updateFileCount() {
+    const count = currentFiles.length;
+    if (count === 0) {
+        fileCount.textContent = 'No photos selected';
+    } else if (count === 1) {
+        fileCount.textContent = '1 appliance selected';
+    } else {
+        fileCount.textContent = `${count} appliances selected (${MAX_FILES - count} slots remaining)`;
+    }
+}
+
+// This function is now replaced by displayFilePreviews()
 
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
@@ -165,22 +226,11 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function removeFile() {
-    currentFile = null;
-    fileInput.value = '';
-    previewImage.src = '';
-    
-    // Show upload area and hide preview
-    uploadArea.style.display = 'block';
-    previewSection.style.display = 'none';
-    
-    // Hide other sections
-    hideAllSections();
-}
+// removeFile function now takes an index parameter and is defined above
 
 function showPaymentForm() {
-    if (!currentFile) {
-        showError('Please select a file first.');
+    if (currentFiles.length === 0) {
+        showError('Please select at least one appliance photo first.');
         return;
     }
     
@@ -241,18 +291,31 @@ async function handlePaymentSubmit(event) {
 }
 
 async function analyzeAppliance() {
-    if (!currentFile || !currentPaymentIntentId) {
+    if (currentFiles.length === 0 || !currentPaymentIntentId) {
         showError('Payment required. Please complete payment first.');
         return;
     }
     
     // Show loading state
-    showLoading('Analyzing your appliance...', 'Our AI is examining your photo to provide detailed insights');
+    const applianceText = currentFiles.length === 1 ? 'appliance' : 'appliances';
+    showLoading(`Analyzing your ${applianceText}...`, `Our AI is examining ${currentFiles.length} photo${currentFiles.length > 1 ? 's' : ''} to provide detailed insights`);
     
     try {
         const formData = new FormData();
-        formData.append('photo', currentFile);
+        
+        // Add all photos
+        currentFiles.forEach((file, index) => {
+            formData.append(`photo_${index}`, file);
+        });
+        
+        // Add custom question if provided
+        const question = customQuestion.value.trim();
+        if (question) {
+            formData.append('custom_question', question);
+        }
+        
         formData.append('payment_intent_id', currentPaymentIntentId);
+        formData.append('total_files', currentFiles.length.toString());
         
         // Try Netlify function first, fallback to local server
         const endpoint = window.location.hostname.includes('netlify') || window.location.hostname.includes('localhost') === false
@@ -274,12 +337,12 @@ async function analyzeAppliance() {
             showError('Payment verification failed. Please try payment again.');
             setTimeout(() => showPaymentForm(), 2000);
         } else {
-            throw new Error(result.error || 'Failed to analyze appliance');
+            throw new Error(result.error || 'Failed to analyze appliances');
         }
         
     } catch (error) {
         console.error('Analysis error:', error);
-        showError(error.message || 'Failed to analyze appliance. Please try again.');
+        showError(error.message || 'Failed to analyze appliances. Please try again.');
     }
 }
 
@@ -388,9 +451,13 @@ function retryAnalysis() {
 function startNewAnalysis() {
     // Reset everything
     currentPaymentIntentId = null;
-    removeFile();
+    currentFiles = [];
+    customQuestion.value = '';
+    imagesGrid.innerHTML = '';
     hideAllSections();
     uploadSection.style.display = 'block';
+    uploadArea.style.display = 'block';
+    previewSection.style.display = 'none';
     analyzeBtn.disabled = false;
 }
 

@@ -50,21 +50,49 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.post('/analyze-appliance', upload.single('photo'), async (req, res) => {
+app.post('/analyze-appliance', upload.array('photos', 5), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No photo uploaded' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No photos uploaded' });
     }
 
-    // Convert image to base64
-    const imageBuffer = await fs.readFile(req.file.path);
-    const base64Image = imageBuffer.toString('base64');
-    const mimeType = req.file.mimetype;
+    // Get custom question if provided
+    const customQuestion = req.body.custom_question || '';
+    
+    // Process all uploaded files
+    const imageContents = [];
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      
+      // Convert image to base64
+      const imageBuffer = await fs.readFile(file.path);
+      const base64Image = imageBuffer.toString('base64');
+      
+      imageContents.push({
+        type: "image_url",
+        image_url: {
+          url: `data:${file.mimetype};base64,${base64Image}`,
+          detail: "high"
+        }
+      });
+    }
 
-    // Create consumer-friendly prompt for appliance analysis
-    const prompt = `You are a professional appliance expert providing a detailed analysis for a homeowner. Analyze this appliance photo and provide information in a clear, consumer-friendly format.
+    // Create consumer-friendly prompt for multiple appliances and custom questions
+    let prompt = `You are a professional appliance expert providing detailed analysis for a homeowner. `;
+    
+    if (req.files.length === 1) {
+      prompt += `Analyze this appliance photo and provide information in a clear, consumer-friendly format.`;
+    } else {
+      prompt += `Analyze these ${req.files.length} appliance photos and provide information for each appliance in a clear, consumer-friendly format.`;
+    }
 
-Please structure your response EXACTLY like this format:
+    if (customQuestion) {
+      prompt += `\n\n**IMPORTANT: The homeowner has asked this specific question: "${customQuestion}"**
+Please make sure to address this question directly in your response, in addition to the standard analysis.`;
+    }
+
+    if (req.files.length === 1) {
+      prompt += `\n\nPlease structure your response EXACTLY like this format:
 
 ## 🔍 APPLIANCE IDENTIFICATION
 **Type:** [Specific appliance type]
@@ -95,29 +123,59 @@ Please structure your response EXACTLY like this format:
 Based on the age and condition, here are your options:
 - **Keep & Maintain:** [If worth maintaining]
 - **Repair Needed:** [If repairs might be needed]
-- **Consider Replacement:** [If approaching end of life]
+- **Consider Replacement:** [If approaching end of life]`;
+    } else {
+      prompt += `\n\nPlease structure your response with each appliance analyzed separately:
 
-Keep the language simple, friendly, and helpful for a homeowner making decisions about their appliance.`;
+## 📱 APPLIANCE 1 ANALYSIS
+[Complete analysis using the format below]
+
+## 📱 APPLIANCE 2 ANALYSIS 
+[Complete analysis using the format below]
+
+[Continue for each appliance...]
+
+For each appliance, use this format:
+**🔍 IDENTIFICATION**
+- Type: [Specific appliance type]
+- Brand: [Brand if visible]
+- Model: [Model number if visible]
+
+**📅 AGE ESTIMATE**
+- Estimated Age: [Age range]
+- Manufacturing Period: [Time period]
+- Confidence: [High/Medium/Low]
+
+**🔧 KEY INDICATORS & CONDITION**
+[Key features that helped determine age and overall condition]
+
+**💡 RECOMMENDATIONS**
+[Maintenance tips and next steps for this specific appliance]`;
+    }
+
+    if (customQuestion) {
+      prompt += `\n\n## ❓ ANSWER TO YOUR QUESTION
+**Your Question:** "${customQuestion}"
+**Expert Answer:** [Detailed response to the homeowner's specific question]`;
+    }
+
+    prompt += `\n\nKeep the language simple, friendly, and helpful for a homeowner making decisions about their appliances.`;
 
     // Call OpenAI GPT-4o API (much cheaper with vision capabilities)
+    const messageContent = [
+      { type: "text", text: prompt },
+      ...imageContents
+    ];
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "user",
-          content: [
-            { type: "text", text: prompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`,
-                detail: "high"
-              }
-            }
-          ]
+          content: messageContent
         }
       ],
-      max_tokens: 1500,
+      max_tokens: req.files.length > 1 ? 2500 : 1500, // More tokens for multiple appliances
       temperature: 0.7
     });
 
@@ -147,24 +205,29 @@ Keep the language simple, friendly, and helpful for a homeowner making decisions
 
     const analysis = baseAnalysis + businessSection;
 
-    // Clean up uploaded file
-    await fs.remove(req.file.path);
+    // Clean up uploaded files
+    for (const file of req.files) {
+      await fs.remove(file.path);
+    }
 
     res.json({
       success: true,
       analysis: analysis,
-      filename: req.file.originalname
+      fileCount: req.files.length,
+      hasCustomQuestion: !!customQuestion
     });
 
   } catch (error) {
     console.error('Error analyzing appliance:', error);
     
-    // Clean up uploaded file on error
-    if (req.file && req.file.path) {
-      try {
-        await fs.remove(req.file.path);
-      } catch (cleanupError) {
-        console.error('Error cleaning up file:', cleanupError);
+    // Clean up uploaded files on error
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          await fs.remove(file.path);
+        } catch (cleanupError) {
+          console.error('Error cleaning up file:', cleanupError);
+        }
       }
     }
 

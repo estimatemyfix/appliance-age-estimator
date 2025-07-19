@@ -26,36 +26,45 @@
                     <div class="upload-icon">
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
-                    <h3>Upload Appliance Photo</h3>
-                    <p>Drag and drop your image here, or click to select</p>
-                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <h3>Upload Appliance Photos</h3>
+                    <p>Upload up to 5 appliances - drag and drop or click to select</p>
+                    <input type="file" id="fileInput" accept="image/*" multiple hidden>
                     <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-plus"></i> Choose Photo
+                        <i class="fas fa-plus"></i> Choose Photos
                     </button>
                 </div>
                 
                 <!-- Preview Section -->
                 <div class="preview-section" id="previewSection" style="display: none;">
-                    <div class="image-preview">
-                        <img id="previewImage" src="" alt="Preview">
-                        <div class="preview-overlay">
-                            <button class="remove-btn" id="removeBtn">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
+                    <div class="images-grid" id="imagesGrid">
+                        <!-- Multiple image previews will be added here -->
                     </div>
-                    <div class="file-info">
-                        <p id="fileName"></p>
-                        <p id="fileSize"></p>
+                    
+                    <div class="custom-question-section">
+                        <h4><i class="fas fa-question-circle"></i> Have a Specific Question?</h4>
+                        <textarea id="customQuestion" placeholder="Optional: Ask anything about your appliances... 
+Examples:
+• What heating element do I need for this model?
+• Why is my dryer making noise?
+• Is this refrigerator worth repairing?
+• What parts are most likely to fail soon?" rows="4"></textarea>
                     </div>
+                    
+                    <div class="file-summary">
+                        <p id="fileCount">No photos selected</p>
+                        <button class="add-more-btn" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-plus"></i> Add More Photos
+                        </button>
+                    </div>
+                    
                     <div class="payment-info">
                         <div class="price-display">
                             <span class="price">$2.99</span>
-                            <span class="price-note">Professional appliance analysis</span>
+                            <span class="price-note">Up to 5 appliances + custom questions</span>
                         </div>
                     </div>
                     <button class="analyze-btn" id="analyzeBtn">
-                        <i class="fas fa-credit-card"></i> Pay & Analyze Appliance
+                        <i class="fas fa-credit-card"></i> Pay & Analyze All Appliances
                     </button>
                 </div>
             </div>
