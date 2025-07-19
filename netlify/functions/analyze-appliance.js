@@ -62,8 +62,12 @@ exports.handler = async (event, context) => {
     }
 
     // Get custom question if provided
+    console.log('All form fields received:', result.fields); // Debug log
     const customQuestion = result.fields?.custom_question || '';
     const totalFiles = parseInt(result.fields?.total_files || '1');
+    
+    console.log('Custom question received:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
+    console.log('Number of files received:', result.files.length); // Debug log
 
     // TEMPORARY: Skip payment verification for testing - REMOVE THIS LATER
     const TESTING_MODE = true; // Set to false to enable payment verification
@@ -256,6 +260,7 @@ For each appliance, use this format:
 
     prompt += `\n\nKeep the language simple, friendly, and helpful for a homeowner making decisions about their appliances.`;
 
+    console.log('Final prompt includes custom question:', prompt.includes('IMPORTANT: The homeowner has asked')); // Debug log
     console.log('Calling OpenAI API...');
 
     // Call OpenAI GPT-4o API (much cheaper with vision capabilities)

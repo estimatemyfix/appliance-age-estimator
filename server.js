@@ -64,7 +64,9 @@ app.post('/analyze-appliance', upload.array('photos', 5), async (req, res) => {
     }
 
     // Get custom question if provided
+    console.log('Request body fields:', req.body); // Debug log
     const customQuestion = req.body.custom_question || '';
+    console.log('Custom question received:', customQuestion ? `"${customQuestion}"` : 'None'); // Debug log
     
     // Process all uploaded files
     const imageContents = [];

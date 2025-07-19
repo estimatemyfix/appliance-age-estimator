@@ -313,15 +313,19 @@ async function analyzeAppliance() {
     try {
         const formData = new FormData();
         
-        // Add all photos
+        // Add all photos with consistent naming
         currentFiles.forEach((file, index) => {
-            formData.append(`photo_${index}`, file);
+            formData.append('photos', file); // Use array-style naming
+            console.log(`Adding photo ${index + 1}:`, file.name); // Debug log
         });
         
         // Add custom question if provided
         const question = customQuestion.value.trim();
         if (question) {
             formData.append('custom_question', question);
+            console.log('Adding custom question:', question); // Debug log
+        } else {
+            console.log('No custom question provided'); // Debug log
         }
         
         formData.append('payment_intent_id', currentPaymentIntentId);
