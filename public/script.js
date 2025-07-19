@@ -185,12 +185,67 @@ function showResults(analysis) {
     hideAllSections();
     uploadSection.style.display = 'none';
     
-    // Format and display analysis
-    analysisContent.textContent = analysis;
+    // Format and display analysis with proper HTML formatting
+    const formattedAnalysis = formatAnalysisText(analysis);
+    analysisContent.innerHTML = formattedAnalysis;
     resultsSection.style.display = 'block';
     
     // Re-enable analyze button
     analyzeBtn.disabled = false;
+}
+
+function formatAnalysisText(text) {
+    // Convert markdown-style formatting to HTML
+    let formatted = text
+        // Convert ## headers to h2
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        // Convert ### headers to h3
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        // Convert **bold** text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        // Convert [link](url) to proper links
+        .replace(/\[(.+?)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        // Convert bullet points
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        // Handle dividers
+        .replace(/^---$/gm, '<hr class="divider">')
+        // Convert newlines to <br> and paragraphs
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>');
+
+    // Wrap in paragraph tags
+    formatted = '<p>' + formatted + '</p>';
+    
+    // Fix empty paragraphs
+    formatted = formatted.replace(/<p><\/p>/g, '');
+    formatted = formatted.replace(/<p><br>/g, '<p>');
+    formatted = formatted.replace(/<br><\/p>/g, '</p>');
+    
+    // Wrap consecutive list items in ul tags
+    formatted = formatted.replace(/(<li>.*?<\/li>)(?:\s*<br>\s*<li>.*?<\/li>)*/g, function(match) {
+        const items = match.match(/<li>.*?<\/li>/g) || [];
+        return '<ul>' + items.join('') + '</ul>';
+    });
+    
+    // Clean up any remaining <br> tags around headers and lists
+    formatted = formatted.replace(/<br>\s*(<h[23]>)/g, '$1');
+    formatted = formatted.replace(/(<\/h[23]>)\s*<br>/g, '$1');
+    formatted = formatted.replace(/<br>\s*(<ul>)/g, '$1');
+    formatted = formatted.replace(/(<\/ul>)\s*<br>/g, '$1');
+    
+    // Special handling for business section
+    formatted = formatted.replace(
+        /(## 🏢 PROFESSIONAL SERVICES.*?)(<hr class="divider">)/s,
+        '<div class="business-section">$1</div>$2'
+    );
+    
+    // Add footer class to the last line
+    formatted = formatted.replace(
+        /(<p>\*Analysis provided by AI-powered appliance assessment technology\*<\/p>)/,
+        '<div class="analysis-footer">$1</div>'
+    );
+    
+    return formatted;
 }
 
 function showError(message) {

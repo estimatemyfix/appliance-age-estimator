@@ -89,19 +89,43 @@ exports.handler = async (event, context) => {
     // Convert to base64 for OpenAI
     const base64Image = file.content.toString('base64');
 
-    // Create detailed prompt for appliance analysis
-    const prompt = `Analyze this appliance photo and provide detailed information about:
+    // Create consumer-friendly prompt for appliance analysis
+    const prompt = `You are a professional appliance expert providing a detailed analysis for a homeowner. Analyze this appliance photo and provide information in a clear, consumer-friendly format.
 
-1. **Type of Appliance**: What specific appliance is this?
-2. **Brand/Manufacturer**: If visible, what brand is it?
-3. **Age Estimation**: Based on design, style, features, and any visible model numbers or design elements, estimate the approximate age or age range of this appliance.
-4. **Key Features**: What features or design elements help determine the age?
-5. **Warranty Information**: Provide general warranty information for this type of appliance (typical warranty periods, what's usually covered).
-6. **Maintenance Tips**: Brief advice on maintaining this appliance.
+Please structure your response EXACTLY like this format:
 
-Please be as specific as possible with the age estimation and explain your reasoning. If you can see any model numbers, serial numbers, or manufacturing dates, please mention them.
+## 🔍 APPLIANCE IDENTIFICATION
+**Type:** [Specific appliance type]
+**Brand:** [Brand if visible, or "Brand not clearly visible"]
+**Model:** [Model number if visible, or "Model number not visible"]
 
-Format your response in a structured, easy-to-read way.`;
+## 📅 AGE ESTIMATE
+**Estimated Age:** [Age range, e.g., "8-12 years old"]
+**Manufacturing Period:** [Time period, e.g., "2012-2016"]
+**Confidence Level:** [High/Medium/Low]
+
+## 🔧 KEY INDICATORS
+[List 2-3 specific design features or characteristics that helped determine the age]
+
+## ⚖️ WARRANTY STATUS
+**Typical Warranty:** [Standard warranty period for this appliance type]
+**Current Status:** [Likely in/out of warranty based on age]
+**What's Usually Covered:** [Brief overview of typical coverage]
+
+## 🛠️ CONDITION ASSESSMENT
+**Overall Condition:** [Appears to be in Good/Fair/Poor condition]
+**Potential Issues:** [Any visible concerns or common problems for this age]
+
+## 💡 MAINTENANCE RECOMMENDATIONS
+[2-3 specific, actionable maintenance tips for this appliance]
+
+## 💰 WHAT'S NEXT?
+Based on the age and condition, here are your options:
+- **Keep & Maintain:** [If worth maintaining]
+- **Repair Needed:** [If repairs might be needed]
+- **Consider Replacement:** [If approaching end of life]
+
+Keep the language simple, friendly, and helpful for a homeowner making decisions about their appliance.`;
 
     console.log('Calling OpenAI API...');
 
@@ -127,7 +151,31 @@ Format your response in a structured, easy-to-read way.`;
       temperature: 0.7
     });
 
-    const analysis = response.choices[0].message.content;
+    const baseAnalysis = response.choices[0].message.content;
+
+    // Add business links to the analysis
+    const businessSection = `
+
+---
+
+## 🏢 PROFESSIONAL SERVICES
+
+### Need a Repair Estimate?
+**Get a professional repair estimate at:** [EstimateMyFix.com](https://estimatemyfix.com)
+- Professional appliance repair quotes
+- Licensed and insured technicians
+- Quick and reliable service
+
+### Need Appliance Removal?
+**Professional appliance pickup and disposal:** [FreeLocalAppliancePickup.com](https://freelocalappliancepickup.com)
+- Free local appliance pickup
+- Environmentally responsible disposal
+- Same-day service available
+
+---
+*Analysis provided by AI-powered appliance assessment technology*`;
+
+    const analysis = baseAnalysis + businessSection;
 
     console.log('OpenAI response received successfully');
 
