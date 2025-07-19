@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -46,10 +48,44 @@
                         <p id="fileName"></p>
                         <p id="fileSize"></p>
                     </div>
+                    <div class="payment-info">
+                        <div class="price-display">
+                            <span class="price">$2.99</span>
+                            <span class="price-note">Professional appliance analysis</span>
+                        </div>
+                    </div>
                     <button class="analyze-btn" id="analyzeBtn">
-                        <i class="fas fa-search"></i> Analyze Appliance
+                        <i class="fas fa-credit-card"></i> Pay & Analyze Appliance
                     </button>
                 </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div class="payment-section" id="paymentSection" style="display: none;">
+                <div class="payment-header">
+                    <h3><i class="fas fa-credit-card"></i> Secure Payment</h3>
+                    <div class="price-breakdown">
+                        <div class="price-item">
+                            <span>Professional Appliance Analysis</span>
+                            <span class="price">$2.99</span>
+                        </div>
+                        <div class="security-note">
+                            <i class="fas fa-lock"></i> Secured by Stripe
+                        </div>
+                    </div>
+                </div>
+                <form id="payment-form">
+                    <div id="card-element">
+                        <!-- Stripe Elements will create form elements here -->
+                    </div>
+                    <div id="card-errors" role="alert"></div>
+                    <button type="submit" id="submit-payment" class="payment-btn">
+                        <i class="fas fa-shield-alt"></i> Pay $2.99 & Analyze
+                    </button>
+                </form>
+                <button class="back-btn" id="backToPreview">
+                    <i class="fas fa-arrow-left"></i> Back to Photo
+                </button>
             </div>
 
             <!-- Loading Section -->
@@ -57,8 +93,8 @@
                 <div class="loading-spinner">
                     <i class="fas fa-cog fa-spin"></i>
                 </div>
-                <h3>Analyzing your appliance...</h3>
-                <p>This may take a few moments while AI examines your photo</p>
+                <h3 id="loadingMessage">Processing payment...</h3>
+                <p id="loadingSubtext">Please wait while we process your payment</p>
             </div>
 
             <!-- Results Section -->

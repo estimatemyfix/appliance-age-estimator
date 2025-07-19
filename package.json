@@ -18,7 +18,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "fs-extra": "^11.2.0",
-    "lambda-multipart-parser": "^1.0.1"
+    "lambda-multipart-parser": "^1.0.1",
+    "stripe": "^14.21.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"

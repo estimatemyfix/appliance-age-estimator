@@ -1,5 +1,6 @@
 const OpenAI = require('openai');
 const multipart = require('lambda-multipart-parser');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 exports.handler = async (event, context) => {
   // Set CORS headers
@@ -57,6 +58,47 @@ exports.handler = async (event, context) => {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'No photo uploaded' })
+      };
+    }
+
+    // Check for payment intent ID in form data
+    const paymentIntentId = result.fields?.payment_intent_id;
+    if (!paymentIntentId) {
+      return {
+        statusCode: 402,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Payment required. Please complete payment before analysis.',
+          requiresPayment: true 
+        })
+      };
+    }
+
+    // Verify payment was successful
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status !== 'succeeded') {
+        return {
+          statusCode: 402,
+          headers,
+          body: JSON.stringify({ 
+            error: 'Payment not completed. Please complete payment before analysis.',
+            requiresPayment: true 
+          })
+        };
+      }
+      
+      console.log('Payment verified successfully:', paymentIntentId);
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      return {
+        statusCode: 402,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Payment verification failed. Please try again.',
+          requiresPayment: true 
+        })
       };
     }
 

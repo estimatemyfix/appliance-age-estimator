@@ -7,7 +7,11 @@ const fileName = document.getElementById('fileName');
 const fileSize = document.getElementById('fileSize');
 const removeBtn = document.getElementById('removeBtn');
 const analyzeBtn = document.getElementById('analyzeBtn');
+const paymentSection = document.getElementById('paymentSection');
+const backToPreviewBtn = document.getElementById('backToPreview');
 const loadingSection = document.getElementById('loadingSection');
+const loadingMessage = document.getElementById('loadingMessage');
+const loadingSubtext = document.getElementById('loadingSubtext');
 const resultsSection = document.getElementById('resultsSection');
 const analysisContent = document.getElementById('analysisContent');
 const errorSection = document.getElementById('errorSection');
@@ -17,10 +21,44 @@ const newAnalysisBtn = document.getElementById('newAnalysisBtn');
 const uploadSection = document.getElementById('uploadSection');
 
 let currentFile = null;
+let currentPaymentIntentId = null;
+
+// Initialize Stripe (using config file)
+const stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
+const elements = stripe.elements();
+const cardElement = elements.create('card', {
+    style: {
+        base: {
+            fontSize: '16px',
+            color: '#424770',
+            '::placeholder': {
+                color: '#aab7c4',
+            },
+        },
+        invalid: {
+            color: '#9e2146',
+        },
+    },
+});
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
+    
+    // Mount Stripe card element
+    if (document.getElementById('card-element')) {
+        cardElement.mount('#card-element');
+        
+        // Handle real-time validation errors from the card Element
+        cardElement.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
+    }
 });
 
 function initializeEventListeners() {
@@ -35,9 +73,14 @@ function initializeEventListeners() {
     
     // Button clicks
     removeBtn.addEventListener('click', removeFile);
-    analyzeBtn.addEventListener('click', analyzeAppliance);
+    analyzeBtn.addEventListener('click', showPaymentForm);
+    backToPreviewBtn.addEventListener('click', backToPreview);
     retryBtn.addEventListener('click', retryAnalysis);
     newAnalysisBtn.addEventListener('click', startNewAnalysis);
+    
+    // Payment form
+    const paymentForm = document.getElementById('payment-form');
+    paymentForm.addEventListener('submit', handlePaymentSubmit);
     
     // Prevent default drag behavior
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -135,18 +178,81 @@ function removeFile() {
     hideAllSections();
 }
 
-async function analyzeAppliance() {
+function showPaymentForm() {
     if (!currentFile) {
         showError('Please select a file first.');
         return;
     }
     
+    hideAllSections();
+    uploadSection.style.display = 'none';
+    paymentSection.style.display = 'block';
+}
+
+function backToPreview() {
+    hideAllSections();
+    uploadSection.style.display = 'block';
+    previewSection.style.display = 'block';
+}
+
+async function handlePaymentSubmit(event) {
+    event.preventDefault();
+    
+    const submitButton = document.getElementById('submit-payment');
+    const cardErrors = document.getElementById('card-errors');
+    
+    submitButton.disabled = true;
+    submitButton.textContent = 'Processing...';
+    cardErrors.textContent = '';
+    
+    try {
+        // Create payment intent
+        const response = await fetch('/.netlify/functions/create-payment-intent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const { clientSecret } = await response.json();
+        
+        // Confirm payment with Stripe
+        const result = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+                card: cardElement
+            }
+        });
+        
+        if (result.error) {
+            // Show error to customer
+            cardErrors.textContent = result.error.message;
+        } else {
+            // Payment successful
+            currentPaymentIntentId = result.paymentIntent.id;
+            await analyzeAppliance();
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        cardErrors.textContent = 'Payment failed. Please try again.';
+    }
+    
+    submitButton.disabled = false;
+    submitButton.innerHTML = '<i class="fas fa-shield-alt"></i> Pay $2.99 & Analyze';
+}
+
+async function analyzeAppliance() {
+    if (!currentFile || !currentPaymentIntentId) {
+        showError('Payment required. Please complete payment first.');
+        return;
+    }
+    
     // Show loading state
-    showLoading();
+    showLoading('Analyzing your appliance...', 'Our AI is examining your photo to provide detailed insights');
     
     try {
         const formData = new FormData();
         formData.append('photo', currentFile);
+        formData.append('payment_intent_id', currentPaymentIntentId);
         
         // Try Netlify function first, fallback to local server
         const endpoint = window.location.hostname.includes('netlify') || window.location.hostname.includes('localhost') === false
@@ -162,6 +268,11 @@ async function analyzeAppliance() {
         
         if (response.ok && result.success) {
             showResults(result.analysis);
+        } else if (result.requiresPayment) {
+            // Reset and show payment form again
+            currentPaymentIntentId = null;
+            showError('Payment verification failed. Please try payment again.');
+            setTimeout(() => showPaymentForm(), 2000);
         } else {
             throw new Error(result.error || 'Failed to analyze appliance');
         }
@@ -172,9 +283,11 @@ async function analyzeAppliance() {
     }
 }
 
-function showLoading() {
+function showLoading(message = 'Processing payment...', subtext = 'Please wait while we process your payment') {
     hideAllSections();
     uploadSection.style.display = 'none';
+    loadingMessage.textContent = message;
+    loadingSubtext.textContent = subtext;
     loadingSection.style.display = 'block';
     
     // Disable analyze button
@@ -258,6 +371,7 @@ function showError(message) {
 }
 
 function hideAllSections() {
+    paymentSection.style.display = 'none';
     loadingSection.style.display = 'none';
     resultsSection.style.display = 'none';
     errorSection.style.display = 'none';
@@ -273,6 +387,7 @@ function retryAnalysis() {
 
 function startNewAnalysis() {
     // Reset everything
+    currentPaymentIntentId = null;
     removeFile();
     hideAllSections();
     uploadSection.style.display = 'block';

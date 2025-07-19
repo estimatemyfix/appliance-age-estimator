@@ -5,10 +5,12 @@ A modern web application that uses AI vision technology to analyze photos of app
 ## ✨ Features
 
 - **📸 Photo Upload**: Easy drag-and-drop or click-to-upload interface
-- **🔍 AI Analysis**: Powered by OpenAI GPT-4 Vision for accurate appliance identification
+- **💳 Secure Payments**: $2.99 per analysis with Stripe integration
+- **🔍 AI Analysis**: Powered by OpenAI GPT-4o for accurate appliance identification
 - **📅 Age Estimation**: Get detailed age estimates based on design and features
 - **🛡️ Warranty Information**: Receive general warranty information for your appliance type
 - **🔧 Maintenance Tips**: Get helpful maintenance advice for your appliance
+- **🏢 Business Integration**: Links to repair estimates and appliance pickup services
 - **📱 Responsive Design**: Works perfectly on desktop, tablet, and mobile devices
 - **⚡ Fast Processing**: Quick analysis with real-time loading indicators
 - **🎨 Modern UI**: Beautiful, intuitive interface with smooth animations
@@ -19,6 +21,7 @@ A modern web application that uses AI vision technology to analyze photos of app
 
 - Node.js (v14 or higher)
 - OpenAI API key
+- Stripe account (for payments)
 
 ### Deployment Options
 
@@ -43,16 +46,36 @@ A modern web application that uses AI vision technology to analyze photos of app
    Create a `.env` file in the root directory:
    ```bash
    OPENAI_API_KEY=your_openai_api_key_here
+   STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key_here
    PORT=3000
    ```
    
-   **Get your OpenAI API key:**
+   **Get your API keys:**
+   
+   **OpenAI API key:**
    - Visit [OpenAI API Keys](https://platform.openai.com/api-keys)
    - Create an account or sign in
    - Generate a new API key
    - Copy and paste it into your `.env` file
+   
+   **Stripe API keys:**
+   - Visit [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
+   - Create an account or sign in
+   - Copy your **Secret key** (starts with `sk_test_`) into your `.env` file
+   - Copy your **Publishable key** (starts with `pk_test_`) - you'll need this next
 
-4. **Start the application**
+4. **Configure Stripe Publishable Key**
+   
+   Edit `public/config.js`:
+   ```javascript
+   const CONFIG = {
+       STRIPE_PUBLISHABLE_KEY: 'pk_test_your_actual_publishable_key_here',
+       ANALYSIS_PRICE: 2.99,
+       ANALYSIS_PRICE_CENTS: 299
+   };
+   ```
+
+5. **Start the application**
    ```bash
    npm start
    ```
@@ -62,7 +85,7 @@ A modern web application that uses AI vision technology to analyze photos of app
    npm run dev
    ```
 
-5. **Open your browser**
+6. **Open your browser**
    
    Navigate to `http://localhost:3000`
 
@@ -85,6 +108,7 @@ A modern web application that uses AI vision technology to analyze photos of app
 4. **Add environment variables:**
    - Go to Site Settings → Environment Variables
    - Add: `OPENAI_API_KEY` = your_openai_api_key_here
+   - Add: `STRIPE_SECRET_KEY` = your_stripe_secret_key_here
 
 5. **Deploy!** 
    - Your site will be live at `https://your-site-name.netlify.app`
@@ -241,12 +265,27 @@ appliance-age-estimator/
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## 💰 Business Model
+
+**Revenue per Analysis:**
+- **Customer pays:** $2.99
+- **OpenAI API cost:** ~$0.005
+- **Stripe fee:** ~$0.12
+- **Net profit:** ~$2.86 per analysis
+
+**Profit Margins:**
+- **Break-even:** 1 analysis
+- **Monthly revenue (100 analyses):** ~$286 profit
+- **Monthly revenue (1000 analyses):** ~$2,860 profit
+
 ## ⚠️ Important Notes
 
-- **API Costs**: This application uses the OpenAI API, which charges per request. Monitor your usage to avoid unexpected costs.
-- **Privacy**: Uploaded images are temporarily stored on the server and deleted after analysis. However, they are sent to OpenAI for processing.
+- **Payment Required**: Each analysis requires a $2.99 payment via Stripe
+- **API Costs**: Very low cost (~$0.005 per analysis using GPT-4o)
+- **Privacy**: Uploaded images are temporarily processed and deleted after analysis
 - **Accuracy**: AI estimates are based on visual analysis and may not always be 100% accurate. Use as a general guide.
 - **Internet Required**: This application requires an active internet connection to function.
+- **Test Mode**: Make sure to use Stripe test keys during development
 
 ## 🆘 Support
 
