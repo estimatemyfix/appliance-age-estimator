@@ -144,9 +144,9 @@ Format your response in a structured, easy-to-read way.`;
 
     console.log('Calling OpenAI API...');
 
-    // Call OpenAI GPT-4 Vision API
+    // Call OpenAI GPT-4o API (much cheaper with vision capabilities)
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -162,7 +162,7 @@ Format your response in a structured, easy-to-read way.`;
           ]
         }
       ],
-      max_tokens: 1000,
+      max_tokens: 1500,
       temperature: 0.7
     });
 
