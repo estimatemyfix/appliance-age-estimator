@@ -313,6 +313,20 @@ body {
     opacity: 0.9;
 }
 
+.testing-mode-note {
+    background: rgba(255, 193, 7, 0.2);
+    color: #856404;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.testing-mode-note i {
+    margin-right: 5px;
+}
+
 .payment-section {
     animation: fadeInUp 0.5s ease;
 }

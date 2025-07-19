@@ -234,6 +234,16 @@ function showPaymentForm() {
         return;
     }
     
+    // TEMPORARY: Skip payment for testing - REMOVE THIS LATER
+    const TESTING_MODE = true; // Set to false to enable payments
+    
+    if (TESTING_MODE) {
+        // Skip payment and go straight to analysis
+        currentPaymentIntentId = 'test_payment_' + Date.now(); // Fake payment ID for testing
+        analyzeAppliance();
+        return;
+    }
+    
     hideAllSections();
     uploadSection.style.display = 'none';
     paymentSection.style.display = 'block';

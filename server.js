@@ -56,6 +56,13 @@ app.post('/analyze-appliance', upload.array('photos', 5), async (req, res) => {
       return res.status(400).json({ error: 'No photos uploaded' });
     }
 
+    // TEMPORARY: Skip payment verification for testing - REMOVE THIS LATER
+    const TESTING_MODE = true; // Set to false to enable payment verification
+    
+    if (TESTING_MODE) {
+      console.log('TESTING MODE: Skipping payment verification');
+    }
+
     // Get custom question if provided
     const customQuestion = req.body.custom_question || '';
     

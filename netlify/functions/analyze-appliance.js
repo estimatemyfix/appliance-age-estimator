@@ -65,45 +65,52 @@ exports.handler = async (event, context) => {
     const customQuestion = result.fields?.custom_question || '';
     const totalFiles = parseInt(result.fields?.total_files || '1');
 
-    // Check for payment intent ID in form data
-    const paymentIntentId = result.fields?.payment_intent_id;
-    if (!paymentIntentId) {
-      return {
-        statusCode: 402,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Payment required. Please complete payment before analysis.',
-          requiresPayment: true 
-        })
-      };
-    }
-
-    // Verify payment was successful
-    try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-      
-      if (paymentIntent.status !== 'succeeded') {
+    // TEMPORARY: Skip payment verification for testing - REMOVE THIS LATER
+    const TESTING_MODE = true; // Set to false to enable payment verification
+    
+    if (!TESTING_MODE) {
+      // Check for payment intent ID in form data
+      const paymentIntentId = result.fields?.payment_intent_id;
+      if (!paymentIntentId) {
         return {
           statusCode: 402,
           headers,
           body: JSON.stringify({ 
-            error: 'Payment not completed. Please complete payment before analysis.',
+            error: 'Payment required. Please complete payment before analysis.',
             requiresPayment: true 
           })
         };
       }
-      
-      console.log('Payment verified successfully:', paymentIntentId);
-    } catch (error) {
-      console.error('Payment verification error:', error);
-      return {
-        statusCode: 402,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Payment verification failed. Please try again.',
-          requiresPayment: true 
-        })
-      };
+
+      // Verify payment was successful
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        
+        if (paymentIntent.status !== 'succeeded') {
+          return {
+            statusCode: 402,
+            headers,
+            body: JSON.stringify({ 
+              error: 'Payment not completed. Please complete payment before analysis.',
+              requiresPayment: true 
+            })
+          };
+        }
+        
+        console.log('Payment verified successfully:', paymentIntentId);
+      } catch (error) {
+        console.error('Payment verification error:', error);
+        return {
+          statusCode: 402,
+          headers,
+          body: JSON.stringify({ 
+            error: 'Payment verification failed. Please try again.',
+            requiresPayment: true 
+          })
+        };
+      }
+    } else {
+      console.log('TESTING MODE: Skipping payment verification');
     }
 
     // Process all uploaded files
