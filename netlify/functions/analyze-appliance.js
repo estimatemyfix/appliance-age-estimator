@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const multipart = require('lambda-multipart-parser');
 
 exports.handler = async (event, context) => {
   // Set CORS headers
@@ -48,74 +49,21 @@ exports.handler = async (event, context) => {
       apiKey: process.env.OPENAI_API_KEY
     });
 
-    // Check if body exists
-    if (!event.body) {
-      console.error('No body in request');
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'No data received' })
-      };
-    }
-
-    // Parse multipart form data manually
-    const boundary = event.headers['content-type']?.split('boundary=')[1];
-    if (!boundary) {
-      console.error('No boundary found in content-type');
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Invalid content type' })
-      };
-    }
-
-    const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString() : event.body;
-    const parts = body.split(`--${boundary}`);
+    // Parse multipart form data properly
+    const result = await multipart.parse(event);
     
-    let imageData = null;
-    let contentType = null;
-    let filename = null;
-
-    // Find the file part
-    for (const part of parts) {
-      if (part.includes('Content-Disposition: form-data; name="photo"')) {
-        const lines = part.split('\r\n');
-        
-        // Find content type
-        const contentTypeLine = lines.find(line => line.startsWith('Content-Type:'));
-        if (contentTypeLine) {
-          contentType = contentTypeLine.split(':')[1].trim();
-        }
-        
-        // Find filename
-        const dispositionLine = lines.find(line => line.includes('filename='));
-        if (dispositionLine) {
-          filename = dispositionLine.split('filename="')[1]?.split('"')[0];
-        }
-        
-        // Find the binary data (after empty line)
-        const emptyLineIndex = lines.findIndex(line => line === '');
-        if (emptyLineIndex !== -1 && emptyLineIndex < lines.length - 1) {
-          const binaryData = lines.slice(emptyLineIndex + 1).join('\r\n');
-          // Remove the trailing boundary part
-          const cleanData = binaryData.split('--')[0];
-          imageData = cleanData;
-        }
-        break;
-      }
-    }
-
-    if (!imageData || !contentType) {
-      console.error('No image data found in request');
+    if (!result.files || result.files.length === 0) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'No image file found in upload' })
+        body: JSON.stringify({ error: 'No photo uploaded' })
       };
     }
 
+    const file = result.files[0];
+    
     // Validate file type
-    if (!contentType.startsWith('image/')) {
+    if (!file.contentType.startsWith('image/')) {
       return {
         statusCode: 400,
         headers,
@@ -123,10 +71,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    console.log('Image received:', { contentType, filename, dataLength: imageData.length });
+    // Validate file size (6MB limit for Netlify functions)
+    if (file.content.length > 6 * 1024 * 1024) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'File size too large. Maximum size is 6MB for Netlify.' })
+      };
+    }
+
+    console.log('Image received:', { 
+      contentType: file.contentType, 
+      filename: file.filename, 
+      dataLength: file.content.length 
+    });
 
     // Convert to base64 for OpenAI
-    const base64Image = Buffer.from(imageData, 'binary').toString('base64');
+    const base64Image = file.content.toString('base64');
 
     // Create detailed prompt for appliance analysis
     const prompt = `Analyze this appliance photo and provide detailed information about:
@@ -155,7 +116,7 @@ Format your response in a structured, easy-to-read way.`;
             {
               type: "image_url",
               image_url: {
-                url: `data:${contentType};base64,${base64Image}`,
+                url: `data:${file.contentType};base64,${base64Image}`,
                 detail: "high"
               }
             }
@@ -176,7 +137,7 @@ Format your response in a structured, easy-to-read way.`;
       body: JSON.stringify({
         success: true,
         analysis: analysis,
-        filename: filename || 'uploaded-image'
+        filename: file.filename
       })
     };
 
