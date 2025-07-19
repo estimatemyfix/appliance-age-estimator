@@ -398,17 +398,10 @@ function formatAnalysisText(text) {
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         // Convert [link](url) to proper links
         .replace(/\[(.+?)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-        // Convert YouTube URLs to embedded thumbnails
-        .replace(/https:\/\/www\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/g, function(match, videoId) {
-            return `<div class="youtube-video">
-                <a href="${match}" target="_blank" class="youtube-link">
-                    <img src="https://img.youtube.com/vi/${videoId}/hqdefault.jpg" 
-                         alt="YouTube Video Thumbnail" 
-                         class="youtube-thumbnail">
-                    <div class="play-button">▶</div>
-                </a>
-                <div class="youtube-url">${match}</div>
-            </div>`;
+        // Convert YouTube search terms to search links
+        .replace(/YouTube:\s*"([^"]+)"/g, function(match, searchTerm) {
+            const encodedTerm = encodeURIComponent(searchTerm);
+            return `YouTube: <a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="youtube-search-btn">🎥 Search "${searchTerm}"</a>`;
         })
         // Convert Amazon links to buttons
         .replace(/(🛒\s*\*\*Amazon:\*\*\s*)(https:\/\/www\.amazon\.com\/s\?k=[^<\s]+)/g,
