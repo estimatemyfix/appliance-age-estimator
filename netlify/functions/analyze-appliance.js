@@ -200,19 +200,36 @@ ANALYZE THIS APPLIANCE IMAGE:
 
 Provide analysis in this format:
 
-## APPLIANCE INFO
-- Type: [appliance type]
-- Age Estimate: [years old]
-- Condition: [Good/Fair/Poor]
+## 🔍 APPLIANCE IDENTIFICATION
+**Type:** [Specific appliance type]
+**Brand:** [Brand if visible, or "Brand not clearly visible"]
+**Model:** [Model number if visible, or "Model number not visible"]
 
-## COMMON PROBLEMS
+## 📅 AGE ESTIMATE
+**Estimated Age:** [Age range, e.g., "8-12 years old"]
+**Manufacturing Period:** [Time period, e.g., "2012-2016"]
+**Confidence Level:** [High/Medium/Low]
+
+## 🔧 KEY INDICATORS
+[List 2-3 specific design features or characteristics that helped determine the age]
+
+## ⚖️ WARRANTY STATUS
+**Typical Warranty:** [Standard warranty period for this appliance type]
+**Current Status:** [Likely in/out of warranty based on age]
+**What's Usually Covered:** [Brief overview of typical coverage]
+
+## 🛠️ CONDITION ASSESSMENT
+**Overall Condition:** [Appears to be in Good/Fair/Poor condition]
+**Potential Issues:** [Any visible concerns or common problems for this age]
+
+## ⚠️ COMMON PROBLEMS
 1. **[Most common problem]** - [Brief description of symptoms]
 2. **[Second problem]** - [Brief description of symptoms]  
 3. **[Third problem]** - [Brief description of symptoms]
 4. **[Fourth problem]** - [Brief description of symptoms]
 5. **[Fifth problem]** - [Brief description of symptoms]
 
-## TOP 5 REPLACEMENT PARTS & PURCHASE LINKS
+## 🔧 TOP 5 REPLACEMENT PARTS & PURCHASE LINKS
 - **[Part 1 name]**: OEM# [real part number] - **Part Cost: $XX-$XX**
   - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
   - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
@@ -238,8 +255,14 @@ Provide analysis in this format:
 - **[Specific repair task 2]** - YouTube: "[search term like 'washing machine water valve fix']"
 - **[Specific repair task 3]** - YouTube: "[search term like 'dishwasher door seal replacement']"
 
-## RECOMMENDATION
-[Keep/repair/replace advice based on age and condition]`;
+## 💡 MAINTENANCE RECOMMENDATIONS
+[2-3 specific, actionable maintenance tips to prevent common problems]
+
+## 💰 WHAT'S NEXT?
+Based on the age and condition, here are your options:
+- **Keep & Maintain:** [If worth maintaining]
+- **Repair Needed:** [If repairs might be needed]
+- **Consider Replacement:** [If approaching end of life]`;
 
     if (customQuestion) {
       prompt += `\n\n🔥 ALSO ANSWER: "${customQuestion}"`;
