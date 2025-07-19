@@ -1,9 +1,4 @@
 const OpenAI = require('openai');
-const multipart = require('lambda-multipart-parser');
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
 
 exports.handler = async (event, context) => {
   // Set CORS headers
@@ -12,6 +7,8 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
+
+  console.log('Function called:', event.httpMethod);
 
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
@@ -34,30 +31,91 @@ exports.handler = async (event, context) => {
   try {
     // Check if API key is configured
     if (!process.env.OPENAI_API_KEY) {
+      console.error('OpenAI API key not configured');
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.' 
+          error: 'OpenAI API key not configured. Please set OPENAI_API_KEY environment variable in Netlify.' 
         })
       };
     }
 
-    // Parse multipart form data
-    const result = await multipart.parse(event);
-    
-    if (!result.files || result.files.length === 0) {
+    console.log('API key found, processing request...');
+
+    // Initialize OpenAI
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+
+    // Check if body exists
+    if (!event.body) {
+      console.error('No body in request');
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'No photo uploaded' })
+        body: JSON.stringify({ error: 'No data received' })
       };
     }
 
-    const file = result.files[0];
+    // Parse multipart form data manually
+    const boundary = event.headers['content-type']?.split('boundary=')[1];
+    if (!boundary) {
+      console.error('No boundary found in content-type');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid content type' })
+      };
+    }
+
+    const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString() : event.body;
+    const parts = body.split(`--${boundary}`);
     
+    let imageData = null;
+    let contentType = null;
+    let filename = null;
+
+    // Find the file part
+    for (const part of parts) {
+      if (part.includes('Content-Disposition: form-data; name="photo"')) {
+        const lines = part.split('\r\n');
+        
+        // Find content type
+        const contentTypeLine = lines.find(line => line.startsWith('Content-Type:'));
+        if (contentTypeLine) {
+          contentType = contentTypeLine.split(':')[1].trim();
+        }
+        
+        // Find filename
+        const dispositionLine = lines.find(line => line.includes('filename='));
+        if (dispositionLine) {
+          filename = dispositionLine.split('filename="')[1]?.split('"')[0];
+        }
+        
+        // Find the binary data (after empty line)
+        const emptyLineIndex = lines.findIndex(line => line === '');
+        if (emptyLineIndex !== -1 && emptyLineIndex < lines.length - 1) {
+          const binaryData = lines.slice(emptyLineIndex + 1).join('\r\n');
+          // Remove the trailing boundary part
+          const cleanData = binaryData.split('--')[0];
+          imageData = cleanData;
+        }
+        break;
+      }
+    }
+
+    if (!imageData || !contentType) {
+      console.error('No image data found in request');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No image file found in upload' })
+      };
+    }
+
     // Validate file type
-    if (!file.contentType.startsWith('image/')) {
+    if (!contentType.startsWith('image/')) {
       return {
         statusCode: 400,
         headers,
@@ -65,17 +123,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Validate file size (10MB limit)
-    if (file.content.length > 10 * 1024 * 1024) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'File size too large. Maximum size is 10MB.' })
-      };
-    }
+    console.log('Image received:', { contentType, filename, dataLength: imageData.length });
 
-    // Convert to base64
-    const base64Image = file.content.toString('base64');
+    // Convert to base64 for OpenAI
+    const base64Image = Buffer.from(imageData, 'binary').toString('base64');
 
     // Create detailed prompt for appliance analysis
     const prompt = `Analyze this appliance photo and provide detailed information about:
@@ -91,6 +142,8 @@ Please be as specific as possible with the age estimation and explain your reaso
 
 Format your response in a structured, easy-to-read way.`;
 
+    console.log('Calling OpenAI API...');
+
     // Call OpenAI GPT-4 Vision API
     const response = await openai.chat.completions.create({
       model: "gpt-4-vision-preview",
@@ -102,7 +155,7 @@ Format your response in a structured, easy-to-read way.`;
             {
               type: "image_url",
               image_url: {
-                url: `data:${file.contentType};base64,${base64Image}`,
+                url: `data:${contentType};base64,${base64Image}`,
                 detail: "high"
               }
             }
@@ -115,13 +168,15 @@ Format your response in a structured, easy-to-read way.`;
 
     const analysis = response.choices[0].message.content;
 
+    console.log('OpenAI response received successfully');
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
         analysis: analysis,
-        filename: file.filename
+        filename: filename || 'uploaded-image'
       })
     };
 
@@ -133,7 +188,8 @@ Format your response in a structured, easy-to-read way.`;
       headers,
       body: JSON.stringify({ 
         error: 'Failed to analyze appliance', 
-        details: error.message 
+        details: error.message,
+        type: error.name || 'Unknown error'
       })
     };
   }
