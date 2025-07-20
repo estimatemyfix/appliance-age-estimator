@@ -507,13 +507,146 @@ function displayResults(analysisResult) {
 }
 
 function formatAnalysisContent(content) {
-    // Basic HTML formatting for the analysis content
-    return content
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>')
-        .replace(/^/, '<p>')
-        .replace(/$/, '</p>');
+    // Enhanced HTML formatting for the analysis content
+    let formatted = content;
+    
+    // Convert markdown headers to proper HTML headers
+    formatted = formatted.replace(/^## (.+)$/gm, '<h2 class="analysis-section-title">$1</h2>');
+    formatted = formatted.replace(/^### (.+)$/gm, '<h3 class="analysis-subsection-title">$1</h3>');
+    
+    // Convert bold text
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="highlight">$1</strong>');
+    
+    // Create clickable Amazon links
+    formatted = formatted.replace(
+        /Amazon:\s*([^<\n]+)/g, 
+        function(match, searchTerm) {
+            const cleanTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
+            const encodedTerm = encodeURIComponent(cleanTerm);
+            return `<a href="https://www.amazon.com/s?k=${encodedTerm}" target="_blank" class="purchase-link amazon-link">
+                <i class="fab fa-amazon"></i>
+                <span>Buy on Amazon</span>
+                <small>${cleanTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Create clickable eBay links
+    formatted = formatted.replace(
+        /eBay:\s*([^<\n]+)/g, 
+        function(match, searchTerm) {
+            const cleanTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
+            const encodedTerm = encodeURIComponent(cleanTerm);
+            return `<a href="https://www.ebay.com/sch/i.html?_nkw=${encodedTerm}" target="_blank" class="purchase-link ebay-link">
+                <i class="fas fa-gavel"></i>
+                <span>Buy on eBay</span>
+                <small>${cleanTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Create YouTube repair video links - specifically for part replacement
+    formatted = formatted.replace(
+        /YouTube:\s*"([^"]+)"/g, 
+        function(match, searchTerm) {
+            // Enhance search term to focus on replacement/repair
+            const repairTerm = searchTerm + " replacement repair how to replace";
+            const encodedTerm = encodeURIComponent(repairTerm);
+            return `<a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="video-link youtube-link">
+                <i class="fab fa-youtube"></i>
+                <span>Watch Repair Video</span>
+                <small>How to replace: ${searchTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Convert price ranges to highlighted spans
+    formatted = formatted.replace(/\$(\d+)-\$(\d+)/g, '<span class="price-range">$$$1-$$$2</span>');
+    formatted = formatted.replace(/\$(\d+)/g, '<span class="price">$$$1</span>');
+    
+    // Convert part numbers to highlighted spans
+    formatted = formatted.replace(/([A-Z0-9]{6,})/g, '<span class="part-number">$1</span>');
+    
+    // Create problem cards for numbered issues
+    formatted = formatted.replace(
+        /(\d+\.\s+)([^\n:]+):\s*([^\n]+)/g,
+        function(match, number, problemTitle, description) {
+            return `
+                <div class="problem-card">
+                    <div class="problem-header">
+                        <span class="problem-number">${number.replace('.', '')}</span>
+                        <h4 class="problem-title">${problemTitle}</h4>
+                    </div>
+                    <p class="problem-description">${description}</p>
+                </div>
+            `;
+        }
+    );
+    
+    // Convert bullet points to styled lists
+    formatted = formatted.replace(/^[\s]*[-•]\s+(.+)$/gm, '<li class="styled-bullet">$1</li>');
+    
+    // Wrap consecutive list items in styled ul
+    formatted = formatted.replace(
+        /(<li class="styled-bullet">.*?<\/li>)(\s*<li class="styled-bullet">.*?<\/li>)*/gs,
+        function(match) {
+            return '<ul class="styled-list">' + match + '</ul>';
+        }
+    );
+    
+    // Convert warranty info to special cards
+    formatted = formatted.replace(
+        /(Warranty Status|Warranty Information):\s*([^\n]+)/gi,
+        function(match, title, info) {
+            const isActive = info.toLowerCase().includes('active') || info.toLowerCase().includes('covered');
+            const statusClass = isActive ? 'warranty-active' : 'warranty-expired';
+            return `
+                <div class="warranty-card ${statusClass}">
+                    <div class="warranty-icon">
+                        <i class="fas fa-shield-${isActive ? 'check' : 'times'}"></i>
+                    </div>
+                    <div class="warranty-content">
+                        <h4>Warranty Status</h4>
+                        <p>${info}</p>
+                    </div>
+                </div>
+            `;
+        }
+    );
+    
+    // Convert age information to special cards
+    formatted = formatted.replace(
+        /(Age|Manufacturing Date|Estimated Age):\s*([^\n]+)/gi,
+        function(match, title, ageInfo) {
+            return `
+                <div class="age-card">
+                    <div class="age-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="age-content">
+                        <h4>Appliance Age</h4>
+                        <p class="age-value">${ageInfo}</p>
+                    </div>
+                </div>
+            `;
+        }
+    );
+    
+    // Clean up and structure the content
+    formatted = formatted
+        .replace(/\n\n+/g, '</p><p>')  // Convert double newlines to paragraphs
+        .replace(/\n/g, '<br>')        // Convert single newlines to breaks
+        .replace(/^/, '<p>')           // Add opening paragraph
+        .replace(/$/, '</p>')          // Add closing paragraph
+        .replace(/<p><\/p>/g, '')      // Remove empty paragraphs
+        .replace(/<p>(<h[234])/g, '$1') // Don't wrap headers in paragraphs
+        .replace(/(<\/h[234]>)<\/p>/g, '$1') // Don't wrap headers in paragraphs
+        .replace(/<p>(<div)/g, '$1')   // Don't wrap divs in paragraphs  
+        .replace(/(<\/div>)<\/p>/g, '$1') // Don't wrap divs in paragraphs
+        .replace(/<p>(<ul)/g, '$1')    // Don't wrap lists in paragraphs
+        .replace(/(<\/ul>)<\/p>/g, '$1'); // Don't wrap lists in paragraphs
+    
+    return formatted;
 }
 
 window.startNewAnalysis = function() {
