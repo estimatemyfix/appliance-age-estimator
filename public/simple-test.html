@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Appliance Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .upload-box {
+            border: 2px dashed #ccc;
+            padding: 40px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: white;
+        }
+        
+        .upload-box.dragover {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+        
+        .preview-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .preview-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        
+        .analyze-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .analyze-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .youtube-link {
+            display: inline-block;
+            background: #ff0000;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        
+        .business-link {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        
+        .part-number {
+            background: #6f42c1;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .problem-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 How Old Is My Appliance?</h1>
+    
+    <div class="upload-box" id="uploadArea">
+        <i class="fas fa-camera fa-3x" style="color: #ccc; margin-bottom: 10px;"></i>
+        <p>Drop your appliance photos here or click to browse</p>
+        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    </div>
+    
+    <div class="preview-container" id="previewContainer"></div>
+    
+    <button class="analyze-btn" id="analyzeBtn" disabled>
+        <i class="fas fa-brain"></i> Analyze My Appliance ($2.99)
+    </button>
+    
+    <div class="loading" id="loading">
+        <i class="fas fa-spinner fa-spin fa-2x"></i>
+        <p>AI is analyzing your appliance...</p>
+    </div>
+    
+    <div class="results" id="results"></div>
+
+    <script src="config.js"></script>
+    <script>
+        let selectedFiles = [];
+        
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        
+        // Event listeners
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        analyzeBtn.addEventListener('click', analyzeImages);
+        
+        function handleFiles(files) {
+            selectedFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            displayPreviews();
+            analyzeBtn.disabled = selectedFiles.length === 0;
+        }
+        
+        function displayPreviews() {
+            previewContainer.innerHTML = '';
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'preview-image';
+                    img.title = file.name;
+                    previewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        async function analyzeImages() {
+            if (selectedFiles.length === 0) return;
+            
+            // Show loading
+            loading.style.display = 'block';
+            analyzeBtn.disabled = true;
+            results.style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                selectedFiles.forEach(file => {
+                    formData.append('images', file);
+                });
+                
+                // Add test payment ID
+                formData.append('paymentIntentId', 'test_' + Date.now());
+                
+                const response = await fetch('/.netlify/functions/analyze-appliance', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                displayResults(result);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Analysis failed: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+        
+        function displayResults(result) {
+            console.log('Result:', result);
+            
+            if (!result.analysis) {
+                results.innerHTML = '<p>No analysis results received.</p>';
+                results.style.display = 'block';
+                return;
+            }
+            
+            // Simple, reliable formatting
+            let html = '<h2>🔍 Analysis Results</h2>';
+            
+            // Split by lines and process each one
+            const lines = result.analysis.split('\n');
+            let inProblemSection = false;
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                
+                // Headers
+                if (line.startsWith('##')) {
+                    html += `<h3>${line.replace('##', '').trim()}</h3>`;
+                    inProblemSection = line.toLowerCase().includes('problem') || line.toLowerCase().includes('part');
+                    return;
+                }
+                
+                // Numbered problems/parts
+                if (/^\d+\.\s/.test(line)) {
+                    const match = line.match(/^(\d+)\.\s+(.+?):\s*(.+)?$/);
+                    if (match) {
+                        const [, num, title, desc] = match;
+                        html += `
+                            <div class="problem-card">
+                                <h4>${num}. ${title}</h4>
+                                <p>${desc || ''}</p>
+                        `;
+                        
+                        // Add YouTube link for repair parts
+                        if (title.toLowerCase().includes('replace') || title.toLowerCase().includes('part') || 
+                            title.toLowerCase().includes('element') || title.toLowerCase().includes('motor')) {
+                            const searchTerm = encodeURIComponent(`how to replace ${title} appliance repair`);
+                            html += `
+                                <a href="https://www.youtube.com/results?search_query=${searchTerm}" 
+                                   target="_blank" class="youtube-link">
+                                    <i class="fab fa-youtube"></i> Watch Repair Tutorial
+                                </a>
+                            `;
+                        }
+                        
+                        html += '</div>';
+                    }
+                    return;
+                }
+                
+                // Regular text with part number highlighting
+                line = line.replace(/\b([A-Z]{2,3}\d{2}[A-Z]\d{4,5}|[A-Z0-9]{6,12})\b/g, 
+                    '<span class="part-number">$1</span>');
+                
+                html += `<p>${line}</p>`;
+            });
+            
+            // Add business links
+            html += `
+                <h3>🏢 Professional Services</h3>
+                <div>
+                    <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
+                        <i class="fas fa-truck"></i> Free Local Appliance Pickup
+                    </a>
+                    <a href="https://estimatemyfix.com" target="_blank" class="business-link">
+                        <i class="fas fa-calculator"></i> Get Professional Estimate
+                    </a>
+                </div>
+            `;
+            
+            results.innerHTML = html;
+            results.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
