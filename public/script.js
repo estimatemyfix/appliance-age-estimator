@@ -509,7 +509,7 @@ function displayResults(analysisResult) {
 function formatAnalysisContent(content) {
     console.log('Raw content:', content);
     
-    // SIMPLE APPROACH: Just format the text and add buttons where needed
+    // Clean, simple approach focused on YouTube tutorials and business links
     let formatted = content;
     
     // Convert markdown headers to HTML
@@ -519,12 +519,14 @@ function formatAnalysisContent(content) {
     // Convert bold text
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // Highlight prices and part numbers
+    // Highlight prices (keep these)
     formatted = formatted.replace(/\$(\d+)-\$(\d+)/g, '<span class="price-range">$$$1-$$$2</span>');
     formatted = formatted.replace(/\$(\d+(?:\.\d{2})?)/g, '<span class="price">$$$1</span>');
+    
+    // Highlight part numbers (display only, not linked)
     formatted = formatted.replace(/\b([A-Z]{2,3}\d{2}[A-Z]\d{4,5}|[A-Z0-9]{6,12})\b/g, '<span class="part-number">$1</span>');
     
-    // Handle numbered items (problems/parts) - add buttons after each one
+    // Handle numbered items (problems/parts) - add ONLY YouTube links for parts
     formatted = formatted.replace(
         /(\d+\.\s+)([^:\n]+):\s*([^\n]+(?:\n(?!\d+\.|\n)[^\n]+)*)/g,
         function(match, number, title, description) {
@@ -536,18 +538,12 @@ function formatAnalysisContent(content) {
                     </div>
                     <p class="problem-description">${description}</p>`;
             
-            // Add buttons for replacement parts
-            if (title.toLowerCase().includes('replace') || title.toLowerCase().includes('part') || title.toLowerCase().includes('element') || title.toLowerCase().includes('motor')) {
+            // Add ONLY YouTube tutorial for replacement parts
+            if (title.toLowerCase().includes('replace') || title.toLowerCase().includes('part') || title.toLowerCase().includes('element') || title.toLowerCase().includes('motor') || title.toLowerCase().includes('belt') || title.toLowerCase().includes('pump') || title.toLowerCase().includes('filter')) {
                 result += `
                     <div class="action-buttons">
-                        <a href="https://www.amazon.com/s?k=appliance+parts+${encodeURIComponent(title)}" target="_blank" class="purchase-link amazon-link">
-                            <i class="fab fa-amazon"></i><span>Buy on Amazon</span>
-                        </a>
-                        <a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link">
-                            <i class="fas fa-tools"></i><span>Buy at RepairClinic</span>
-                        </a>
-                        <a href="https://www.youtube.com/results?search_query=${encodeURIComponent('how to replace ' + title + ' appliance repair')}" target="_blank" class="video-link youtube-link">
-                            <i class="fab fa-youtube"></i><span>Watch Tutorial</span>
+                        <a href="https://www.youtube.com/results?search_query=${encodeURIComponent('how to replace ' + title + ' appliance repair tutorial')}" target="_blank" class="video-link youtube-link">
+                            <i class="fab fa-youtube"></i><span>Watch Repair Tutorial</span>
                         </a>
                     </div>`;
             }
@@ -594,14 +590,33 @@ function formatAnalysisContent(content) {
         }
     );
     
-    // Remove any remaining link references that weren't processed
+    // Remove any AI-generated purchase links completely
     formatted = formatted.replace(/🛒\s*\*\*Amazon:\*\*[^\n]*/g, '');
     formatted = formatted.replace(/🛒\s*\*\*RepairClinic:\*\*[^\n]*/g, '');
-    formatted = formatted.replace(/🎥\s*\*\*YouTube:\*\*[^\n]*/g, '');
+    formatted = formatted.replace(/🛒\s*\*\*eBay:\*\*[^\n]*/g, '');
     formatted = formatted.replace(/Amazon:\s*[^\n<]*/g, '');
     formatted = formatted.replace(/RepairClinic:\s*[^\n<]*/g, '');
-    formatted = formatted.replace(/YouTube:\s*[^\n<]*/g, '');
+    formatted = formatted.replace(/eBay:\s*[^\n<]*/g, '');
     formatted = formatted.replace(/https?:\/\/[^\s<]+/g, '');
+    
+    // Clean up any remaining YouTube references from AI
+    formatted = formatted.replace(/🎥\s*\*\*YouTube:\*\*[^\n]*/g, '');
+    formatted = formatted.replace(/YouTube:\s*[^\n<]*/g, '');
+    
+    // Add business links at the end
+    formatted += `
+        <div class="business-links">
+            <h3 class="business-links-title"><i class="fas fa-tools"></i> Professional Appliance Services</h3>
+            <div class="business-buttons">
+                <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link pickup-link">
+                    <i class="fas fa-truck"></i><span>Free Local Appliance Pickup</span>
+                </a>
+                <a href="https://estimatemyfix.com" target="_blank" class="business-link estimate-link">
+                    <i class="fas fa-calculator"></i><span>Get Professional Estimate</span>
+                </a>
+            </div>
+        </div>
+    `;
     
     // Convert newlines to HTML
     formatted = formatted.replace(/\n\n+/g, '</p><p>');
