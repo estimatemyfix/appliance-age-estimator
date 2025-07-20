@@ -103,16 +103,16 @@ app.post('/analyze-appliance', upload.array('photos', 5), async (req, res) => {
     }
 
     // Create consumer-friendly prompt for multiple appliances and custom questions
-    let prompt = `🚨 YOU MUST INCLUDE THESE 5 THINGS OR THE RESPONSE IS REJECTED:
-1. Specific part numbers (format like WE11X10018, WH13X10037 - create realistic ones if needed)
-2. Average cost of each part (part only, no labor)
-3. YouTube search terms for repair videos
-4. Direct Amazon purchase links (format: https://www.amazon.com/s?k=[part_number])
-5. Top 5 most common replacement parts
+    let prompt = `Please analyze this appliance image and provide detailed information about:
 
-ANALYZE THIS APPLIANCE IMAGE:
+1. Appliance identification (type, brand, model if visible)
+2. Age estimation based on design features 
+3. Warranty status assessment
+4. Common problems for this appliance type and age
+5. Top 5 replacement parts with real part numbers and costs
+6. Repair video suggestions
 
-Provide analysis in this format:
+Please format your response with the following sections:
 
 ## 🔍 APPLIANCE IDENTIFICATION
 **Type:** [Specific appliance type]
@@ -176,13 +176,15 @@ Provide analysis in this format:
 Based on the age and condition, here are your options:
 - **Keep & Maintain:** [If worth maintaining]
 - **Repair Needed:** [If repairs might be needed]
-- **Consider Replacement:** [If approaching end of life]`;
+- **Consider Replacement:** [If approaching end of life]
 
-    if (customQuestion) {
-      prompt += `\n\n🔥 ALSO ANSWER: "${customQuestion}"`;
-    }
+Please provide specific part numbers and realistic cost estimates. Include actual YouTube search terms for repair videos.`;
 
-    prompt += `\n\n⚠️ CRITICAL: You MUST include real part numbers and actual purchase links. Show part costs only (no labor costs).`;
+  if (customQuestion) {
+    prompt += `
+
+Additionally, please answer this specific question: "${customQuestion}"`;
+  }
 
     // Call OpenAI GPT-4o API (much cheaper with vision capabilities)
     const messageContent = [
@@ -205,8 +207,25 @@ Based on the age and condition, here are your options:
     const baseAnalysis = response.choices[0].message.content;
     
     console.log('=== AI RESPONSE RECEIVED ===');
-    console.log(baseAnalysis);
+    console.log('Response exists:', !!response);
+    console.log('Choices exist:', !!response.choices);
+    console.log('First choice exists:', !!response.choices[0]);
+    console.log('Message content exists:', !!response.choices[0]?.message?.content);
+    console.log('Content length:', baseAnalysis?.length || 0);
+    console.log('Base analysis:', baseAnalysis);
     console.log('=== END AI RESPONSE ===');
+
+    // Validate the AI response
+    if (!baseAnalysis || baseAnalysis.trim().length === 0) {
+      throw new Error('OpenAI API returned empty response');
+    }
+
+    // Check if response looks like an error or refusal
+    if (baseAnalysis.toLowerCase().includes("i can't assist") || 
+        baseAnalysis.toLowerCase().includes("i'm sorry") || 
+        baseAnalysis.length < 200) {
+      throw new Error(`OpenAI API refused or gave insufficient response: ${baseAnalysis}`);
+    }
 
     // Add business links to the analysis
     const businessSection = `
