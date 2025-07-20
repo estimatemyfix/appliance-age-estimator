@@ -1,6 +1,10 @@
 const multipart = require('lambda-multipart-parser');
 
 exports.handler = async (event, context) => {
+    console.log('=== FUNCTION START ===');
+    console.log('Method:', event.httpMethod);
+    console.log('Headers:', JSON.stringify(event.headers, null, 2));
+    
     // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -10,10 +14,12 @@ exports.handler = async (event, context) => {
     };
 
     if (event.httpMethod === 'OPTIONS') {
+        console.log('OPTIONS request - returning CORS headers');
         return { statusCode: 200, headers, body: '' };
     }
 
     if (event.httpMethod !== 'POST') {
+        console.log('Non-POST request');
         return {
             statusCode: 405,
             headers,
@@ -22,16 +28,48 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        console.log('Starting analysis...');
+        console.log('=== PARSING MULTIPART DATA ===');
+        
+        // Check if we have the required environment variable
+        if (!process.env.OPENAI_API_KEY) {
+            console.error('OPENAI_API_KEY not found in environment');
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'Server configuration error',
+                    details: 'OpenAI API key not configured'
+                })
+            };
+        }
+
+        console.log('OpenAI API key found');
 
         // Parse multipart form data
-        const result = await multipart.parse(event);
-        console.log('Parsed result:', { 
-            hasFiles: !!result.files, 
-            fileCount: result.files?.length || 0 
-        });
+        let result;
+        try {
+            result = await multipart.parse(event);
+            console.log('Multipart parsing successful');
+            console.log('Result structure:', {
+                hasFiles: !!result.files,
+                fileCount: result.files?.length || 0,
+                hasFields: !!result.fields,
+                fieldKeys: Object.keys(result.fields || {})
+            });
+        } catch (parseError) {
+            console.error('Multipart parsing failed:', parseError);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'Failed to parse uploaded data',
+                    details: parseError.message
+                })
+            };
+        }
 
         if (!result.files || result.files.length === 0) {
+            console.error('No files found in upload');
             return {
                 statusCode: 400,
                 headers,
@@ -39,30 +77,39 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Take the first image for analysis
+        // Process the first file
         const file = result.files[0];
-        console.log('Processing file:', { 
-            contentType: file.contentType, 
-            filename: file.filename, 
-            size: file.content.length 
+        console.log('Processing file:', {
+            contentType: file.contentType,
+            filename: file.filename,
+            size: file.content.length
         });
 
+        if (!file.contentType || !file.contentType.startsWith('image/')) {
+            console.error('Invalid file type:', file.contentType);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Please upload a valid image file' })
+            };
+        }
+
+        console.log('=== CALLING OPENAI API ===');
+
         const base64Image = file.content.toString('base64');
+        console.log('Image converted to base64, length:', base64Image.length);
 
-        // Simple, focused AI prompt
-        const prompt = `Analyze this appliance image and provide ONLY:
+        // Simplified prompt for testing
+        const prompt = `Look at this appliance image and tell me:
+1. What type of appliance this is
+2. Estimate its age (manufacturing year and current age)
+3. List 5 common parts that fail on this type of appliance
 
-1. EXACT AGE: Estimate the manufacturing year and current age in years
-2. TOP 5 COMMON FAILURES: List the 5 most common parts that fail on this appliance type with:
-   - Part name
-   - Actual part number (like WE11X10018, 5304505435, etc.)
-   - Simple search term to find the part
-
-Format your response EXACTLY like this:
+Format your response like this:
 
 ## AGE
-Manufacturing Year: [year]
-Current Age: [X years old]
+Manufacturing Year: 2015
+Current Age: 9 years old
 
 ## TOP 5 COMMON PART FAILURES
 
@@ -70,17 +117,14 @@ Current Age: [X years old]
    Part Number: WE11X10018
    Search: "dryer heating element WE11X10018"
 
-2. **Thermal Fuse**
-   Part Number: WE4X750
-   Search: "thermal fuse WE4X750"
+2. **Door Seal**
+   Part Number: WH08X10036
+   Search: "dryer door seal WH08X10036"
 
-[Continue for parts 3, 4, and 5]
+[Continue for parts 3, 4, and 5]`;
 
-Be specific with real part numbers and appliance type.`;
+        console.log('Making OpenAI request...');
 
-        console.log('Calling OpenAI API...');
-
-        // Call OpenAI API
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -96,12 +140,15 @@ Be specific with real part numbers and appliance type.`;
                             { type: 'text', text: prompt },
                             {
                                 type: 'image_url',
-                                image_url: { url: `data:${file.contentType};base64,${base64Image}` }
+                                image_url: { 
+                                    url: `data:${file.contentType};base64,${base64Image}`,
+                                    detail: 'low' // Use low detail for faster processing
+                                }
                             }
                         ]
                     }
                 ],
-                max_tokens: 800,
+                max_tokens: 600,
                 temperature: 0.3
             })
         });
@@ -110,32 +157,65 @@ Be specific with real part numbers and appliance type.`;
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('OpenAI API error:', errorText);
-            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+            console.error('OpenAI API error response:', errorText);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'AI analysis failed',
+                    details: `OpenAI API error: ${response.status}`
+                })
+            };
         }
 
         const aiResponse = await response.json();
-        const analysis = aiResponse.choices[0].message.content;
+        console.log('OpenAI response received successfully');
 
-        console.log('Analysis completed successfully');
+        if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
+            console.error('Invalid AI response structure:', aiResponse);
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ 
+                    error: 'Invalid response from AI',
+                    details: 'Unexpected response format'
+                })
+            };
+        }
+
+        const analysis = aiResponse.choices[0].message.content;
+        console.log('Analysis length:', analysis.length);
+        console.log('Analysis preview:', analysis.substring(0, 200) + '...');
+
+        console.log('=== SUCCESS ===');
 
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
-                analysis: analysis
+                analysis: analysis,
+                debug: {
+                    fileProcessed: true,
+                    fileSize: file.content.length,
+                    aiResponseLength: analysis.length
+                }
             })
         };
 
     } catch (error) {
-        console.error('Analysis error:', error);
+        console.error('=== FUNCTION ERROR ===');
+        console.error('Error type:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
                 error: 'Analysis failed',
-                details: error.message 
+                details: error.message,
+                type: error.name
             })
         };
     }
