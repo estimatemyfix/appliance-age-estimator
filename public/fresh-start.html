@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Old Is My Appliance?</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f8ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area i {
+            font-size: 4rem;
+            color: #ddd;
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+
+        .upload-area:hover i {
+            color: #667eea;
+        }
+
+        .upload-area h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .upload-area p {
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .preview-container {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .preview-image {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .analyze-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3);
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 212, 170, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            background: #ddd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .loading i {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .results h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-align: center;
+        }
+
+        .age-section {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .age-section h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .age-section p {
+            font-size: 1.2rem;
+            margin: 5px 0;
+        }
+
+        .parts-section {
+            margin-bottom: 30px;
+        }
+
+        .parts-section h3 {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .part-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            transition: all 0.3s ease;
+        }
+
+        .part-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .part-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .part-number {
+            background: #6f42c1;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .search-term {
+            background: #e9f7ef;
+            border: 1px solid #00d4aa;
+            border-radius: 10px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #155724;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .search-term:hover {
+            background: #d4edda;
+        }
+
+        .copy-btn {
+            background: #00d4aa;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            float: right;
+        }
+
+        .copy-btn:hover {
+            background: #00b894;
+        }
+
+        .business-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .business-section h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .business-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .business-link {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            text-decoration: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .business-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 2rem; }
+            .upload-section, .results { padding: 20px; }
+            .business-links { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-search"></i> How Old Is My Appliance?</h1>
+            <p>Upload a photo to discover your appliance's age and common part failures</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-camera"></i>
+                <h3>Upload Your Appliance Photo</h3>
+                <p>Click here or drag & drop your image</p>
+            </div>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+            <div class="preview-container" id="previewContainer"></div>
+            <button class="analyze-btn" id="analyzeBtn" disabled>
+                <i class="fas fa-brain"></i> Analyze My Appliance
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <i class="fas fa-spinner"></i>
+            <h3>AI is analyzing your appliance...</h3>
+            <p>This will take just a moment</p>
+        </div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        let selectedFile = null;
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+
+        // Event listeners
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+        analyzeBtn.addEventListener('click', analyzeAppliance);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            selectedFile = file;
+            displayPreview(file);
+            analyzeBtn.disabled = false;
+        }
+
+        function displayPreview(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewContainer.innerHTML = `
+                    <img src="${e.target.result}" class="preview-image" alt="Preview">
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyzeAppliance() {
+            if (!selectedFile) return;
+
+            // Show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            analyzeBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('images', selectedFile);
+
+                const response = await fetch('/.netlify/functions/analyze-appliance', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Analysis failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+                displayResults(result.analysis);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Analysis failed. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        function displayResults(analysis) {
+            let html = '<h2><i class="fas fa-check-circle" style="color: #00d4aa;"></i> Analysis Results</h2>';
+            
+            const lines = analysis.split('\n');
+            let currentSection = '';
+            let partCount = 0;
+
+            // Parse age section
+            let ageContent = '';
+            let inAgeSection = false;
+
+            // Parse parts section
+            let partsContent = '';
+            let inPartsSection = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                if (line.includes('## AGE')) {
+                    inAgeSection = true;
+                    inPartsSection = false;
+                    continue;
+                }
+                
+                if (line.includes('## TOP 5')) {
+                    inAgeSection = false;
+                    inPartsSection = true;
+                    continue;
+                }
+
+                if (inAgeSection) {
+                    ageContent += line + '\n';
+                }
+
+                if (inPartsSection) {
+                    partsContent += line + '\n';
+                }
+            }
+
+            // Display age section
+            if (ageContent) {
+                const ageLines = ageContent.split('\n').filter(l => l.trim());
+                html += `
+                    <div class="age-section">
+                        <h3><i class="fas fa-calendar-alt"></i> Appliance Age</h3>
+                `;
+                ageLines.forEach(line => {
+                    if (line.trim()) {
+                        html += `<p>${line}</p>`;
+                    }
+                });
+                html += `</div>`;
+            }
+
+            // Display parts section
+            if (partsContent) {
+                html += `
+                    <div class="parts-section">
+                        <h3><i class="fas fa-tools"></i> Top 5 Common Part Failures</h3>
+                `;
+
+                const partLines = partsContent.split('\n').filter(l => l.trim());
+                let currentPart = '';
+                let partNumber = '';
+                let searchTerm = '';
+
+                for (let line of partLines) {
+                    if (/^\d+\.\s/.test(line)) {
+                        // New part starts
+                        if (currentPart && partNumber && searchTerm) {
+                            html += createPartCard(currentPart, partNumber, searchTerm);
+                        }
+                        currentPart = line.replace(/^\d+\.\s\*\*/, '').replace('**', '');
+                        partNumber = '';
+                        searchTerm = '';
+                    } else if (line.includes('Part Number:')) {
+                        partNumber = line.replace('Part Number:', '').trim();
+                    } else if (line.includes('Search:')) {
+                        searchTerm = line.replace('Search:', '').replace(/"/g, '').trim();
+                    }
+                }
+
+                // Add the last part
+                if (currentPart && partNumber && searchTerm) {
+                    html += createPartCard(currentPart, partNumber, searchTerm);
+                }
+
+                html += `</div>`;
+            }
+
+            // Add business section
+            html += `
+                <div class="business-section">
+                    <h3><i class="fas fa-handshake"></i> Professional Services</h3>
+                    <div class="business-links">
+                        <a href="https://estimatemyfix.com" target="_blank" class="business-link">
+                            <i class="fas fa-calculator"></i> Get Repair Estimate
+                        </a>
+                        <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
+                            <i class="fas fa-truck"></i> Free Appliance Pickup
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            results.innerHTML = html;
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function createPartCard(partName, partNumber, searchTerm) {
+            const cardId = 'part-' + Math.random().toString(36).substr(2, 9);
+            return `
+                <div class="part-card">
+                    <div class="part-title">${partName}</div>
+                    <div class="part-number">${partNumber}</div>
+                    <div class="search-term" id="${cardId}">
+                        ${searchTerm}
+                        <button class="copy-btn" onclick="copyToClipboard('${cardId}')">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent.replace('Copy', '').trim();
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const button = element.querySelector('.copy-btn');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.style.background = '#00d4aa';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = '#00d4aa';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html> 
