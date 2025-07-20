@@ -158,36 +158,39 @@
         .results {
             display: none;
             background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             margin: 20px 0;
         }
 
         .results h2 {
             color: #333;
             margin-bottom: 30px;
-            font-size: 2rem;
+            font-size: 1.8rem;
             text-align: center;
+            font-weight: 600;
         }
 
         .age-section {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
+            background: #f8f9fc;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
             margin-bottom: 30px;
-            text-align: center;
         }
 
         .age-section h3 {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #667eea;
+            font-weight: 600;
         }
 
         .age-section p {
-            font-size: 1.2rem;
+            font-size: 1rem;
             margin: 5px 0;
+            color: #555;
         }
 
         .parts-section {
@@ -196,108 +199,109 @@
 
         .parts-section h3 {
             color: #333;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             margin-bottom: 20px;
-            text-align: center;
+            font-weight: 600;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
         }
 
         .part-card {
-            background: #f8f9fa;
+            background: white;
             border: 1px solid #e9ecef;
-            border-radius: 15px;
+            border-radius: 8px;
             padding: 20px;
             margin: 15px 0;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .part-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
         }
 
         .part-title {
-            font-size: 1.2rem;
-            font-weight: bold;
+            font-size: 1.1rem;
+            font-weight: 600;
             color: #333;
             margin-bottom: 10px;
         }
 
         .part-number {
-            background: #6f42c1;
+            background: #667eea;
             color: white;
-            padding: 5px 10px;
-            border-radius: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
             display: inline-block;
-            margin: 5px 0;
+            margin: 8px 0;
         }
 
         .search-term {
-            background: #e9f7ef;
-            border: 1px solid #00d4aa;
-            border-radius: 10px;
-            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
             margin-top: 10px;
             font-family: 'Courier New', monospace;
             font-size: 0.9rem;
-            color: #155724;
-            cursor: pointer;
+            color: #495057;
             position: relative;
         }
 
-        .search-term:hover {
-            background: #d4edda;
-        }
-
         .copy-btn {
-            background: #00d4aa;
+            background: #28a745;
             color: white;
             border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 4px 8px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 0.8rem;
             float: right;
+            margin-top: -2px;
         }
 
         .copy-btn:hover {
-            background: #00b894;
+            background: #218838;
         }
 
         .business-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
+            background: #f8f9fc;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
         }
 
         .business-section h3 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #28a745;
+            font-weight: 600;
         }
 
         .business-links {
             display: flex;
-            gap: 20px;
-            justify-content: center;
+            gap: 15px;
             flex-wrap: wrap;
         }
 
         .business-link {
-            background: rgba(255,255,255,0.2);
-            color: white;
+            background: white;
+            color: #333;
             text-decoration: none;
-            padding: 15px 25px;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            border: 1px solid #dee2e6;
+            font-weight: 500;
         }
 
         .business-link:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
         }
 
         @media (max-width: 768px) {
@@ -437,20 +441,15 @@
         }
 
         function displayResults(analysis) {
-            let html = '<h2><i class="fas fa-check-circle" style="color: #00d4aa;"></i> Analysis Results</h2>';
+            let html = '<h2>Analysis Results</h2>';
             
             const lines = analysis.split('\n');
-            let currentSection = '';
-            let partCount = 0;
-
-            // Parse age section
             let ageContent = '';
-            let inAgeSection = false;
-
-            // Parse parts section
             let partsContent = '';
+            let inAgeSection = false;
             let inPartsSection = false;
 
+            // Parse content
             for (let line of lines) {
                 line = line.trim();
                 if (!line) continue;
@@ -478,25 +477,19 @@
 
             // Display age section
             if (ageContent) {
+                html += '<div class="age-section"><h3>Appliance Age</h3>';
                 const ageLines = ageContent.split('\n').filter(l => l.trim());
-                html += `
-                    <div class="age-section">
-                        <h3><i class="fas fa-calendar-alt"></i> Appliance Age</h3>
-                `;
                 ageLines.forEach(line => {
                     if (line.trim()) {
                         html += `<p>${line}</p>`;
                     }
                 });
-                html += `</div>`;
+                html += '</div>';
             }
 
             // Display parts section
             if (partsContent) {
-                html += `
-                    <div class="parts-section">
-                        <h3><i class="fas fa-tools"></i> Top 5 Common Part Failures</h3>
-                `;
+                html += '<div class="parts-section"><h3>Common Part Failures</h3>';
 
                 const partLines = partsContent.split('\n').filter(l => l.trim());
                 let currentPart = '';
@@ -505,10 +498,11 @@
 
                 for (let line of partLines) {
                     if (/^\d+\.\s/.test(line)) {
-                        // New part starts
+                        // Save previous part
                         if (currentPart && partNumber && searchTerm) {
                             html += createPartCard(currentPart, partNumber, searchTerm);
                         }
+                        // Start new part
                         currentPart = line.replace(/^\d+\.\s\*\*/, '').replace('**', '');
                         partNumber = '';
                         searchTerm = '';
@@ -524,19 +518,19 @@
                     html += createPartCard(currentPart, partNumber, searchTerm);
                 }
 
-                html += `</div>`;
+                html += '</div>';
             }
 
             // Add business section
             html += `
                 <div class="business-section">
-                    <h3><i class="fas fa-handshake"></i> Professional Services</h3>
+                    <h3>Professional Services</h3>
                     <div class="business-links">
                         <a href="https://estimatemyfix.com" target="_blank" class="business-link">
-                            <i class="fas fa-calculator"></i> Get Repair Estimate
+                            Get Repair Estimate
                         </a>
                         <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
-                            <i class="fas fa-truck"></i> Free Appliance Pickup
+                            Free Appliance Pickup
                         </a>
                     </div>
                 </div>
@@ -556,7 +550,7 @@
                     <div class="search-term" id="${cardId}">
                         ${searchTerm}
                         <button class="copy-btn" onclick="copyToClipboard('${cardId}')">
-                            <i class="fas fa-copy"></i> Copy
+                            Copy
                         </button>
                     </div>
                 </div>
