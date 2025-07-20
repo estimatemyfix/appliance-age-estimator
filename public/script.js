@@ -509,162 +509,116 @@ function displayResults(analysisResult) {
 function formatAnalysisContent(content) {
     console.log('Raw content:', content);
     
-    // NUCLEAR APPROACH: Create a proper DOM structure instead of string replacement
-    const container = document.createElement('div');
-    container.className = 'analysis-content';
+    // SIMPLE APPROACH: Just format the text and add buttons where needed
+    let formatted = content;
     
-    // Split content into sections and process each one
-    const sections = content.split(/(?=##\s)/g).filter(section => section.trim());
+    // Convert markdown headers to HTML
+    formatted = formatted.replace(/^## (.+)$/gm, '<h2 class="analysis-section-title"><i class="fas fa-cog"></i> $1</h2>');
+    formatted = formatted.replace(/^### (.+)$/gm, '<h3 class="analysis-subsection-title">$1</h3>');
     
-    sections.forEach(section => {
-        const sectionDiv = document.createElement('div');
-        sectionDiv.className = 'analysis-section';
-        
-        const lines = section.split('\n').filter(line => line.trim());
-        let currentContainer = sectionDiv;
-        
-        lines.forEach((line, index) => {
-            line = line.trim();
-            if (!line) return;
+    // Convert bold text
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Highlight prices and part numbers
+    formatted = formatted.replace(/\$(\d+)-\$(\d+)/g, '<span class="price-range">$$$1-$$$2</span>');
+    formatted = formatted.replace(/\$(\d+(?:\.\d{2})?)/g, '<span class="price">$$$1</span>');
+    formatted = formatted.replace(/\b([A-Z]{2,3}\d{2}[A-Z]\d{4,5}|[A-Z0-9]{6,12})\b/g, '<span class="part-number">$1</span>');
+    
+    // Handle numbered items (problems/parts) - add buttons after each one
+    formatted = formatted.replace(
+        /(\d+\.\s+)([^:\n]+):\s*([^\n]+(?:\n(?!\d+\.|\n)[^\n]+)*)/g,
+        function(match, number, title, description) {
+            let result = `
+                <div class="problem-card">
+                    <div class="problem-header">
+                        <span class="problem-number">${number.replace('.', '')}</span>
+                        <h4 class="problem-title">${title}</h4>
+                    </div>
+                    <p class="problem-description">${description}</p>`;
             
-            // Section headers
-            if (line.startsWith('## ')) {
-                const header = document.createElement('h2');
-                header.className = 'analysis-section-title';
-                header.innerHTML = `<i class="fas fa-cog"></i> ${line.replace('## ', '')}`;
-                currentContainer.appendChild(header);
-                return;
+            // Add buttons for replacement parts
+            if (title.toLowerCase().includes('replace') || title.toLowerCase().includes('part') || title.toLowerCase().includes('element') || title.toLowerCase().includes('motor')) {
+                result += `
+                    <div class="action-buttons">
+                        <a href="https://www.amazon.com/s?k=appliance+parts+${encodeURIComponent(title)}" target="_blank" class="purchase-link amazon-link">
+                            <i class="fab fa-amazon"></i><span>Buy on Amazon</span>
+                        </a>
+                        <a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link">
+                            <i class="fas fa-tools"></i><span>Buy at RepairClinic</span>
+                        </a>
+                        <a href="https://www.youtube.com/results?search_query=${encodeURIComponent('how to replace ' + title + ' appliance repair')}" target="_blank" class="video-link youtube-link">
+                            <i class="fab fa-youtube"></i><span>Watch Tutorial</span>
+                        </a>
+                    </div>`;
             }
             
-            if (line.startsWith('### ')) {
-                const header = document.createElement('h3');
-                header.className = 'analysis-subsection-title';
-                header.textContent = line.replace('### ', '');
-                currentContainer.appendChild(header);
-                return;
-            }
-            
-            // Numbered items (problems/parts)
-            if (/^\d+\.\s/.test(line)) {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'problem-card';
-                
-                const match = line.match(/^(\d+)\.\s+(.+?):\s*(.+)?$/);
-                if (match) {
-                    const [, number, title, description] = match;
-                    
-                    itemDiv.innerHTML = `
-                        <div class="problem-header">
-                            <span class="problem-number">${number}</span>
-                            <h4 class="problem-title">${title}</h4>
-                        </div>
-                        <p class="problem-description">${description || ''}</p>
-                    `;
-                    
-                    // Add purchase buttons for parts
-                    if (title.toLowerCase().includes('replace') || title.toLowerCase().includes('part')) {
-                        const buttonsDiv = document.createElement('div');
-                        buttonsDiv.className = 'action-buttons';
-                        
-                        // Amazon button
-                        const amazonBtn = document.createElement('a');
-                        amazonBtn.href = 'https://www.amazon.com/s?k=appliance+parts+' + encodeURIComponent(title);
-                        amazonBtn.target = '_blank';
-                        amazonBtn.className = 'purchase-link amazon-link';
-                        amazonBtn.innerHTML = '<i class="fab fa-amazon"></i><span>Buy on Amazon</span>';
-                        buttonsDiv.appendChild(amazonBtn);
-                        
-                        // RepairClinic button
-                        const repairBtn = document.createElement('a');
-                        repairBtn.href = 'https://www.repairclinic.com';
-                        repairBtn.target = '_blank';
-                        repairBtn.className = 'purchase-link repairclinic-link';
-                        repairBtn.innerHTML = '<i class="fas fa-tools"></i><span>Buy at RepairClinic</span>';
-                        buttonsDiv.appendChild(repairBtn);
-                        
-                        // YouTube button
-                        const youtubeBtn = document.createElement('a');
-                        youtubeBtn.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent('how to replace ' + title + ' appliance repair');
-                        youtubeBtn.target = '_blank';
-                        youtubeBtn.className = 'video-link youtube-link';
-                        youtubeBtn.innerHTML = '<i class="fab fa-youtube"></i><span>Watch Tutorial</span>';
-                        buttonsDiv.appendChild(youtubeBtn);
-                        
-                        itemDiv.appendChild(buttonsDiv);
-                    }
-                }
-                
-                currentContainer.appendChild(itemDiv);
-                return;
-            }
-            
-            // Handle warranty and age info specially
-            if (line.toLowerCase().includes('warranty') && line.includes(':')) {
-                const [title, info] = line.split(':');
-                const warrantyCard = document.createElement('div');
-                warrantyCard.className = 'warranty-card';
-                const isActive = info.toLowerCase().includes('active') || info.toLowerCase().includes('covered');
-                if (isActive) warrantyCard.classList.add('warranty-active');
-                
-                warrantyCard.innerHTML = `
+            result += `</div>`;
+            return result;
+        }
+    );
+    
+    // Handle warranty info
+    formatted = formatted.replace(
+        /(Warranty Status|Warranty Information):\s*([^\n]+)/gi,
+        function(match, title, info) {
+            const isActive = info.toLowerCase().includes('active') || info.toLowerCase().includes('covered');
+            return `
+                <div class="warranty-card ${isActive ? 'warranty-active' : ''}">
                     <div class="warranty-icon">
                         <i class="fas fa-shield-${isActive ? 'check' : 'times'}"></i>
                     </div>
                     <div class="warranty-content">
                         <h4>Warranty Status</h4>
-                        <p>${info.trim()}</p>
+                        <p>${info}</p>
                     </div>
-                `;
-                currentContainer.appendChild(warrantyCard);
-                return;
-            }
-            
-            if ((line.toLowerCase().includes('age') || line.toLowerCase().includes('manufacturing')) && line.includes(':')) {
-                const [title, info] = line.split(':');
-                const ageCard = document.createElement('div');
-                ageCard.className = 'age-card';
-                
-                ageCard.innerHTML = `
+                </div>
+            `;
+        }
+    );
+    
+    // Handle age info
+    formatted = formatted.replace(
+        /(Age|Manufacturing Date|Estimated Age):\s*([^\n]+)/gi,
+        function(match, title, info) {
+            return `
+                <div class="age-card">
                     <div class="age-icon">
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="age-content">
                         <h4>Appliance Age</h4>
-                        <p class="age-value">${info.trim()}</p>
+                        <p class="age-value">${info}</p>
                     </div>
-                `;
-                currentContainer.appendChild(ageCard);
-                return;
-            }
-            
-            // Regular text - clean up any remaining link references
-            line = line.replace(/🛒\s*\*\*Amazon:\*\*[^\n]*/g, '');
-            line = line.replace(/🛒\s*\*\*RepairClinic:\*\*[^\n]*/g, '');
-            line = line.replace(/🎥\s*\*\*YouTube:\*\*[^\n]*/g, '');
-            line = line.replace(/Amazon:\s*[^\n]*/g, '');
-            line = line.replace(/RepairClinic:\s*[^\n]*/g, '');
-            line = line.replace(/YouTube:\s*[^\n]*/g, '');
-            line = line.replace(/https?:\/\/[^\s]+/g, '');
-            
-            // Clean up bold formatting and convert to proper HTML
-            line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
-            // Highlight prices and part numbers
-            line = line.replace(/\$(\d+)-\$(\d+)/g, '<span class="price-range">$$$1-$$$2</span>');
-            line = line.replace(/\$(\d+(?:\.\d{2})?)/g, '<span class="price">$$$1</span>');
-            line = line.replace(/\b([A-Z]{2,3}\d{2}[A-Z]\d{4,5}|[A-Z0-9]{6,12})\b/g, '<span class="part-number">$1</span>');
-            
-            if (line.trim()) {
-                const p = document.createElement('p');
-                p.innerHTML = line;
-                currentContainer.appendChild(p);
-            }
-        });
-        
-        container.appendChild(sectionDiv);
-    });
+                </div>
+            `;
+        }
+    );
     
-    return container.outerHTML;
+    // Remove any remaining link references that weren't processed
+    formatted = formatted.replace(/🛒\s*\*\*Amazon:\*\*[^\n]*/g, '');
+    formatted = formatted.replace(/🛒\s*\*\*RepairClinic:\*\*[^\n]*/g, '');
+    formatted = formatted.replace(/🎥\s*\*\*YouTube:\*\*[^\n]*/g, '');
+    formatted = formatted.replace(/Amazon:\s*[^\n<]*/g, '');
+    formatted = formatted.replace(/RepairClinic:\s*[^\n<]*/g, '');
+    formatted = formatted.replace(/YouTube:\s*[^\n<]*/g, '');
+    formatted = formatted.replace(/https?:\/\/[^\s<]+/g, '');
+    
+    // Convert newlines to HTML
+    formatted = formatted.replace(/\n\n+/g, '</p><p>');
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    // Wrap in paragraphs
+    formatted = '<p>' + formatted + '</p>';
+    
+    // Clean up empty paragraphs and fix structure
+    formatted = formatted.replace(/<p><\/p>/g, '');
+    formatted = formatted.replace(/<p>(<h[2-6])/g, '$1');
+    formatted = formatted.replace(/(<\/h[2-6]>)<\/p>/g, '$1');
+    formatted = formatted.replace(/<p>(<div)/g, '$1');
+    formatted = formatted.replace(/(<\/div>)<\/p>/g, '$1');
+    
+    console.log('Formatted content:', formatted);
+    return formatted;
 }
 
 window.startNewAnalysis = function() {
