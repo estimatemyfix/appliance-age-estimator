@@ -1,23 +1,13 @@
 // DOM Elements
 const uploadArea = document.getElementById('uploadArea');
-const fileInput = document.getElementById('fileInput');
-const previewSection = document.getElementById('previewSection');
-const imagesGrid = document.getElementById('imagesGrid');
-const fileCount = document.getElementById('fileCount');
-const customQuestion = document.getElementById('customQuestion');
+const imageInput = document.getElementById('imageInput'); // Changed from fileInput
+const previewGrid = document.getElementById('previewGrid'); // Changed from imagesGrid
+const customQuestions = document.getElementById('customQuestions'); // Changed from customQuestion
 const analyzeBtn = document.getElementById('analyzeBtn');
 const paymentSection = document.getElementById('paymentSection');
-const backToPreviewBtn = document.getElementById('backToPreview');
-const loadingSection = document.getElementById('loadingSection');
-const loadingMessage = document.getElementById('loadingMessage');
-const loadingSubtext = document.getElementById('loadingSubtext');
-const resultsSection = document.getElementById('resultsSection');
-const analysisContent = document.getElementById('analysisContent');
-const errorSection = document.getElementById('errorSection');
-const errorMessage = document.getElementById('errorMessage');
-const retryBtn = document.getElementById('retryBtn');
-const newAnalysisBtn = document.getElementById('newAnalysisBtn');
-const uploadSection = document.getElementById('uploadSection');
+const loadingOverlay = document.getElementById('loadingOverlay'); // Changed from loadingSection
+const loadingText = document.getElementById('loadingText'); // Changed from loadingMessage
+const results = document.getElementById('results'); // Changed from resultsSection
 
 let currentFiles = [];
 const MAX_FILES = 5;
@@ -25,67 +15,43 @@ let currentPaymentIntentId = null;
 
 // Initialize Stripe (using config file)
 const stripe = Stripe(CONFIG.STRIPE_PUBLISHABLE_KEY);
-const elements = stripe.elements();
-const cardElement = elements.create('card', {
-    style: {
-        base: {
-            fontSize: '16px',
-            color: '#424770',
-            '::placeholder': {
-                color: '#aab7c4',
-            },
-        },
-        invalid: {
-            color: '#9e2146',
-        },
-    },
-});
+let elements, paymentElement;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
-    
-    // Mount Stripe card element
-    if (document.getElementById('card-element')) {
-        cardElement.mount('#card-element');
-        
-        // Handle real-time validation errors from the card Element
-        cardElement.on('change', function(event) {
-            const displayError = document.getElementById('card-errors');
-            if (event.error) {
-                displayError.textContent = event.error.message;
-            } else {
-                displayError.textContent = '';
-            }
-        });
-    }
+    console.log('App initialized');
 });
 
 function initializeEventListeners() {
     // File input change
-    fileInput.addEventListener('change', handleFileSelect);
+    if (imageInput) {
+        imageInput.addEventListener('change', handleFileSelect);
+    }
     
     // Drag and drop events
-    uploadArea.addEventListener('dragover', handleDragOver);
-    uploadArea.addEventListener('dragenter', handleDragEnter);
-    uploadArea.addEventListener('dragleave', handleDragLeave);
-    uploadArea.addEventListener('drop', handleDrop);
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragenter', handleDragEnter);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        uploadArea.addEventListener('click', () => imageInput.click());
+    }
     
     // Button clicks
-    analyzeBtn.addEventListener('click', showPaymentForm);
-    backToPreviewBtn.addEventListener('click', backToPreview);
-    retryBtn.addEventListener('click', retryAnalysis);
-    newAnalysisBtn.addEventListener('click', startNewAnalysis);
-    
-    // Payment form
-    const paymentForm = document.getElementById('payment-form');
-    paymentForm.addEventListener('submit', handlePaymentSubmit);
+    if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', handleAnalyzeClick);
+    }
     
     // Prevent default drag behavior
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadArea.addEventListener(eventName, preventDefaults, false);
+        if (uploadArea) {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        }
         document.body.addEventListener(eventName, preventDefaults, false);
     });
+
+    console.log('Event listeners initialized');
 }
 
 function preventDefaults(e) {
@@ -117,6 +83,8 @@ function handleFileSelect(e) {
 }
 
 function handleFiles(files) {
+    console.log('Handling files:', files);
+    
     // Filter valid image files
     const validFiles = files.filter(file => {
         if (!file.type.startsWith('image/')) {
@@ -147,15 +115,20 @@ function handleFiles(files) {
     
     if (currentFiles.length > 0) {
         displayFilePreviews();
+        enableAnalyzeButton();
     }
     
     // Clear the input so the same files can be selected again if needed
-    fileInput.value = '';
+    if (imageInput) {
+        imageInput.value = '';
+    }
 }
 
 function displayFilePreviews() {
+    if (!previewGrid) return;
+    
     // Clear existing previews
-    imagesGrid.innerHTML = '';
+    previewGrid.innerHTML = '';
     
     // Create preview for each file
     currentFiles.forEach((file, index) => {
@@ -163,31 +136,44 @@ function displayFilePreviews() {
         
         reader.onload = function(e) {
             const previewDiv = document.createElement('div');
-            previewDiv.className = 'image-preview';
+            previewDiv.className = 'image-preview-card';
             previewDiv.innerHTML = `
-                <img src="${e.target.result}" alt="Appliance ${index + 1}">
-                <div class="preview-overlay">
+                <div class="preview-image">
+                    <img src="${e.target.result}" alt="Appliance ${index + 1}">
                     <button class="remove-btn" onclick="removeFile(${index})">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="file-info">
-                    ${file.name} (${formatFileSize(file.size)})
+                <div class="preview-info">
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
                 </div>
             `;
-            imagesGrid.appendChild(previewDiv);
+            previewGrid.appendChild(previewDiv);
         };
         
         reader.readAsDataURL(file);
     });
     
-    // Update file count
-    updateFileCount();
+    // Show preview grid
+    previewGrid.style.display = 'grid';
     
-    // Show preview section
-    uploadArea.style.display = 'none';
-    previewSection.style.display = 'block';
-    hideAllSections();
+    console.log('Displayed previews for', currentFiles.length, 'files');
+}
+
+function enableAnalyzeButton() {
+    if (analyzeBtn) {
+        analyzeBtn.disabled = false;
+        analyzeBtn.classList.add('enabled');
+        console.log('Analyze button enabled');
+    }
+}
+
+function disableAnalyzeButton() {
+    if (analyzeBtn) {
+        analyzeBtn.disabled = true;
+        analyzeBtn.classList.remove('enabled');
+    }
 }
 
 // Make removeFile global so it can be called from onclick handlers
@@ -195,28 +181,17 @@ window.removeFile = function(index) {
     currentFiles.splice(index, 1);
     
     if (currentFiles.length === 0) {
-        // Show upload area again
-        uploadArea.style.display = 'block';
-        previewSection.style.display = 'none';
-        hideAllSections();
+        // Hide preview grid
+        if (previewGrid) {
+            previewGrid.style.display = 'none';
+        }
+        disableAnalyzeButton();
     } else {
-        // Refresh previews
         displayFilePreviews();
     }
-}
-
-function updateFileCount() {
-    const count = currentFiles.length;
-    if (count === 0) {
-        fileCount.textContent = 'No photos selected';
-    } else if (count === 1) {
-        fileCount.textContent = '1 appliance selected';
-    } else {
-        fileCount.textContent = `${count} appliances selected (${MAX_FILES - count} slots remaining)`;
-    }
-}
-
-// This function is now replaced by displayFilePreviews()
+    
+    console.log('Removed file, remaining:', currentFiles.length);
+};
 
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
@@ -226,354 +201,349 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// removeFile function now takes an index parameter and is defined above
-
-function showPaymentForm() {
-    if (currentFiles.length === 0) {
-        showError('Please select at least one appliance photo first.');
-        return;
+function showNotification(message, type = 'info') {
+    // Create a premium notification
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    
+    const colors = {
+        error: 'linear-gradient(135deg, #ff4757, #ff3838)',
+        success: 'linear-gradient(135deg, #2ed573, #17a2b8)', 
+        info: 'linear-gradient(135deg, #667eea, #764ba2)'
+    };
+    
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: ${colors[type] || colors.info};
+        color: white;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 20px rgba(102, 126, 234, 0.2);
+        z-index: 10000;
+        font-weight: 500;
+        min-width: 300px;
+        max-width: 400px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.1);
+        animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    `;
+    
+    // Add animation styles
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                flex: 1;
+            }
+            
+            .notification-close {
+                background: rgba(255,255,255,0.2);
+                border: none;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                color: white;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                transition: background 0.2s ease;
+            }
+            
+            .notification-close:hover {
+                background: rgba(255,255,255,0.3);
+            }
+        `;
+        document.head.appendChild(style);
     }
     
-    // TEMPORARY: Skip payment for testing - REMOVE THIS LATER
+    document.body.appendChild(notification);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.animation = 'slideInRight 0.3s reverse';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+async function handleAnalyzeClick() {
+    console.log('Analyze button clicked');
+    
+    if (currentFiles.length === 0) {
+        showNotification('Please upload at least one image', 'error');
+        return;
+    }
+
+    // TESTING MODE - Skip payment for now
     const TESTING_MODE = true; // Set to false to enable payments
     
     if (TESTING_MODE) {
-        // Skip payment and go straight to analysis
-        currentPaymentIntentId = 'test_payment_' + Date.now(); // Fake payment ID for testing
-        analyzeAppliance();
+        showNotification('Testing mode - analyzing without payment', 'info');
+        currentPaymentIntentId = 'test_' + Date.now();
+        await performAnalysis();
         return;
     }
+
+    // Show loading
+    showLoading('Processing your images...');
     
-    hideAllSections();
-    uploadSection.style.display = 'none';
-    paymentSection.style.display = 'block';
+    try {
+        // Create payment intent first
+        const response = await fetch('/.netlify/functions/create-payment-intent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                amount: 299, // $2.99 in cents
+                currency: 'usd'
+            }),
+        });
+
+        const { clientSecret, paymentIntentId } = await response.json();
+        currentPaymentIntentId = paymentIntentId;
+        
+        // Hide loading and show payment
+        hideLoading();
+        showPaymentForm(clientSecret);
+        
+    } catch (error) {
+        console.error('Error creating payment intent:', error);
+        hideLoading();
+        showNotification('Error setting up payment. Please try again.', 'error');
+    }
 }
 
-function backToPreview() {
-    hideAllSections();
-    uploadSection.style.display = 'block';
-    previewSection.style.display = 'block';
+function showPaymentForm(clientSecret) {
+    if (!paymentSection) return;
+    
+    // Initialize Stripe elements for payment
+    elements = stripe.elements({
+        clientSecret: clientSecret
+    });
+    
+    paymentElement = elements.create('payment');
+    const paymentElementDiv = document.getElementById('payment-element');
+    
+    if (paymentElementDiv) {
+        paymentElement.mount('#payment-element');
+    }
+    
+    // Show payment section
+    paymentSection.style.display = 'block';
+    paymentSection.scrollIntoView({ behavior: 'smooth' });
+    
+    // Handle payment form submission
+    const submitPaymentBtn = document.getElementById('submit-payment');
+    if (submitPaymentBtn) {
+        submitPaymentBtn.onclick = handlePaymentSubmit;
+    }
 }
 
 async function handlePaymentSubmit(event) {
     event.preventDefault();
     
-    const submitButton = document.getElementById('submit-payment');
-    const cardErrors = document.getElementById('card-errors');
-    
-    submitButton.disabled = true;
-    submitButton.textContent = 'Processing...';
-    cardErrors.textContent = '';
-    
-    try {
-        // Create payment intent
-        const response = await fetch('/.netlify/functions/create-payment-intent', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const { clientSecret } = await response.json();
-        
-        // Confirm payment with Stripe
-        const result = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: {
-                card: cardElement
-            }
-        });
-        
-        if (result.error) {
-            // Show error to customer
-            cardErrors.textContent = result.error.message;
-        } else {
-            // Payment successful
-            currentPaymentIntentId = result.paymentIntent.id;
-            await analyzeAppliance();
-        }
-    } catch (error) {
-        console.error('Payment error:', error);
-        cardErrors.textContent = 'Payment failed. Please try again.';
-    }
-    
-    submitButton.disabled = false;
-    submitButton.innerHTML = '<i class="fas fa-shield-alt"></i> Pay $2.99 & Analyze';
-}
-
-async function analyzeAppliance() {
-    if (currentFiles.length === 0 || !currentPaymentIntentId) {
-        showError('Payment required. Please complete payment first.');
+    if (!stripe || !elements) {
+        showNotification('Payment system not ready. Please try again.', 'error');
         return;
     }
     
-    // Show loading state
-    const applianceText = currentFiles.length === 1 ? 'appliance' : 'appliances';
-    showLoading(`Analyzing your ${applianceText}...`, `Our AI is examining ${currentFiles.length} photo${currentFiles.length > 1 ? 's' : ''} to provide detailed insights`);
+    showLoading('Processing payment...');
+    
+    const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+            return_url: window.location.origin + '/payment-success',
+        },
+        redirect: 'if_required'
+    });
+    
+    if (error) {
+        hideLoading();
+        showNotification(`Payment failed: ${error.message}`, 'error');
+    } else {
+        // Payment succeeded, now analyze the images
+        await performAnalysis();
+    }
+}
+
+async function performAnalysis() {
+    showLoading('AI is analyzing your appliance...');
+    updateLoadingText('Identifying appliance model...');
     
     try {
+        // Prepare form data
         const formData = new FormData();
         
-        // Add all photos with consistent naming
+        // Add images
         currentFiles.forEach((file, index) => {
-            formData.append('photos', file); // Use array-style naming
-            console.log(`Adding photo ${index + 1}:`, file.name); // Debug log
+            formData.append('images', file);
         });
         
-        // NUCLEAR OPTION: Encode custom question in URL parameter instead of multipart body
-        const question = customQuestion.value.trim();
-        let endpoint = window.location.hostname.includes('netlify') || window.location.hostname.includes('localhost') === false
-            ? '/.netlify/functions/analyze-appliance' 
-            : '/analyze-appliance';
-            
-        if (question) {
-            // Encode the question in the URL to bypass multipart parsing issues
-            const encodedQuestion = encodeURIComponent(question);
-            endpoint += `?custom_question=${encodedQuestion}`;
-            console.log('Adding custom question to URL:', question); // Debug log
-            console.log('Encoded URL:', endpoint); // Debug log
-        } else {
-            console.log('No custom question provided'); // Debug log
+        // Add custom questions if any
+        const customQuestionsValue = customQuestions ? customQuestions.value.trim() : '';
+        if (customQuestionsValue) {
+            formData.append('customQuestions', customQuestionsValue);
         }
         
-        formData.append('payment_intent_id', currentPaymentIntentId);
-        formData.append('total_files', currentFiles.length.toString());
+        // Add payment intent ID
+        if (currentPaymentIntentId) {
+            formData.append('paymentIntentId', currentPaymentIntentId);
+        }
         
-        // Use the endpoint with encoded question (if any)
-        const response = await fetch(endpoint, {
+        // Update loading text
+        updateLoadingText('AI is analyzing your images...');
+        
+        // Send request to Netlify function
+        const response = await fetch('/.netlify/functions/analyze-appliance', {
             method: 'POST',
             body: formData
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
         
-        if (response.ok && result.success) {
-            showResults(result.analysis);
-        } else if (result.requiresPayment) {
-            // Reset and show payment form again
-            currentPaymentIntentId = null;
-            showError('Payment verification failed. Please try payment again.');
-            setTimeout(() => showPaymentForm(), 2000);
-        } else {
-            throw new Error(result.error || 'Failed to analyze appliances');
-        }
+        // Hide loading and show results
+        hideLoading();
+        hidePaymentForm();
+        displayResults(result);
         
     } catch (error) {
         console.error('Analysis error:', error);
-        showError(error.message || 'Failed to analyze appliances. Please try again.');
+        hideLoading();
+        showNotification('Analysis failed. Please try again or contact support.', 'error');
     }
 }
 
-function showLoading(message = 'Processing payment...', subtext = 'Please wait while we process your payment') {
-    hideAllSections();
-    uploadSection.style.display = 'none';
-    loadingMessage.textContent = message;
-    loadingSubtext.textContent = subtext;
-    loadingSection.style.display = 'block';
-    
-    // Disable analyze button
-    analyzeBtn.disabled = true;
-}
-
-function showResults(analysis) {
-    hideAllSections();
-    uploadSection.style.display = 'none';
-    
-    // Format and display analysis with proper HTML formatting
-    const formattedAnalysis = formatAnalysisText(analysis);
-    analysisContent.innerHTML = formattedAnalysis;
-    resultsSection.style.display = 'block';
-    
-    // Re-enable analyze button
-    analyzeBtn.disabled = false;
-}
-
-function formatAnalysisText(text) {
-    // Convert markdown-style formatting to HTML
-    let formatted = text
-        // Convert ## headers to h2
-        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-        // Convert ### headers to h3
-        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-        // Convert **bold** text
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        // Convert [link](url) to proper links
-        .replace(/\[(.+?)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-        // Convert YouTube search terms to search links
-        .replace(/YouTube:\s*"([^"]+)"/g, function(match, searchTerm) {
-            const encodedTerm = encodeURIComponent(searchTerm);
-            return `YouTube: <a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="youtube-search-btn">🎥 Search "${searchTerm}"</a>`;
-        })
-        // Convert Amazon links to buttons
-        .replace(/(🛒\s*\*\*Amazon:\*\*\s*)(https:\/\/www\.amazon\.com\/s\?k=[^<\s]+)/g,
-            '$1<a href="$2" target="_blank" class="purchase-btn amazon-btn">🛒 Buy on Amazon</a>')
-        // Convert eBay links to buttons  
-        .replace(/(🛒\s*\*\*eBay:\*\*\s*)(https:\/\/www\.ebay\.com\/sch\/[^<\s]+)/g,
-            '$1<a href="$2" target="_blank" class="purchase-btn ebay-btn">🛒 Buy on eBay</a>')
-        // Convert bullet points
-        .replace(/^- (.+)$/gm, '<li>$1</li>')
-        // Handle dividers
-        .replace(/^---$/gm, '<hr class="divider">')
-        // Convert newlines to <br> and paragraphs
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-
-    // Wrap in paragraph tags
-    formatted = '<p>' + formatted + '</p>';
-    
-    // Fix empty paragraphs
-    formatted = formatted.replace(/<p><\/p>/g, '');
-    formatted = formatted.replace(/<p><br>/g, '<p>');
-    formatted = formatted.replace(/<br><\/p>/g, '</p>');
-    
-    // Wrap consecutive list items in ul tags
-    formatted = formatted.replace(/(<li>.*?<\/li>)(?:\s*<br>\s*<li>.*?<\/li>)*/g, function(match) {
-        const items = match.match(/<li>.*?<\/li>/g) || [];
-        return '<ul>' + items.join('') + '</ul>';
-    });
-    
-    // Clean up any remaining <br> tags around headers and lists
-    formatted = formatted.replace(/<br>\s*(<h[23]>)/g, '$1');
-    formatted = formatted.replace(/(<\/h[23]>)\s*<br>/g, '$1');
-    formatted = formatted.replace(/<br>\s*(<ul>)/g, '$1');
-    formatted = formatted.replace(/(<\/ul>)\s*<br>/g, '$1');
-    
-    // Special handling for business section
-    formatted = formatted.replace(
-        /(## 🏢 PROFESSIONAL SERVICES.*?)(<hr class="divider">)/s,
-        '<div class="business-section">$1</div>$2'
-    );
-    
-    // Add footer class to the last line
-    formatted = formatted.replace(
-        /(<p>\*Analysis provided by AI-powered appliance assessment technology\*<\/p>)/,
-        '<div class="analysis-footer">$1</div>'
-    );
-    
-    return formatted;
-}
-
-function showError(message) {
-    hideAllSections();
-    errorMessage.textContent = message;
-    errorSection.style.display = 'block';
-    
-    // Re-enable analyze button
-    analyzeBtn.disabled = false;
-}
-
-function hideAllSections() {
-    paymentSection.style.display = 'none';
-    loadingSection.style.display = 'none';
-    resultsSection.style.display = 'none';
-    errorSection.style.display = 'none';
-}
-
-function retryAnalysis() {
-    if (currentFile) {
-        analyzeAppliance();
-    } else {
-        startNewAnalysis();
+function showLoading(message = 'Processing...') {
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+        updateLoadingText(message);
     }
 }
 
-function startNewAnalysis() {
-    // Reset everything
-    currentPaymentIntentId = null;
-    currentFiles = [];
-    customQuestion.value = '';
-    imagesGrid.innerHTML = '';
-    hideAllSections();
-    uploadSection.style.display = 'block';
-    uploadArea.style.display = 'block';
-    previewSection.style.display = 'none';
-    analyzeBtn.disabled = false;
+function hideLoading() {
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
 }
 
-// Utility functions
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()">&times;</button>
+function updateLoadingText(text) {
+    if (loadingText) {
+        loadingText.textContent = text;
+    }
+}
+
+function hidePaymentForm() {
+    if (paymentSection) {
+        paymentSection.style.display = 'none';
+    }
+}
+
+function displayResults(analysisResult) {
+    if (!results) return;
+    
+    console.log('Displaying results:', analysisResult);
+    
+    // Format and display the analysis
+    results.innerHTML = `
+        <div class="results-container">
+            <div class="results-header">
+                <h2><i class="fas fa-check-circle"></i> Analysis Complete</h2>
+                <button class="new-analysis-btn" onclick="startNewAnalysis()">
+                    <i class="fas fa-plus"></i> Analyze Another
+                </button>
+            </div>
+            <div class="analysis-results">
+                ${formatAnalysisContent(analysisResult.analysis)}
+            </div>
+        </div>
     `;
     
-    // Add to page
-    document.body.appendChild(notification);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, 5000);
+    // Show results section
+    results.style.display = 'block';
+    results.scrollIntoView({ behavior: 'smooth' });
 }
 
-// Add some additional CSS for notifications
-const notificationStyles = `
-    <style>
-    .notification {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: white;
-        border-radius: 8px;
-        padding: 15px 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        z-index: 1000;
-        min-width: 300px;
-        animation: slideInRight 0.3s ease;
-    }
-    
-    .notification-error {
-        border-left: 4px solid #ff4757;
-    }
-    
-    .notification-success {
-        border-left: 4px solid #2ed573;
-    }
-    
-    .notification-info {
-        border-left: 4px solid #667eea;
-    }
-    
-    .notification button {
-        background: none;
-        border: none;
-        font-size: 1.2rem;
-        cursor: pointer;
-        color: #999;
-        margin-left: 15px;
-    }
-    
-    .notification button:hover {
-        color: #333;
-    }
-    
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    </style>
-`;
+function formatAnalysisContent(content) {
+    // Basic HTML formatting for the analysis content
+    return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>');
+}
 
-document.head.insertAdjacentHTML('beforeend', notificationStyles);
-
-// Handle online/offline status
-window.addEventListener('online', () => {
-    showNotification('Connection restored!', 'success');
-});
-
-window.addEventListener('offline', () => {
-    showNotification('Connection lost. Please check your internet connection.', 'error');
-}); 
+window.startNewAnalysis = function() {
+    // Reset everything
+    currentFiles = [];
+    currentPaymentIntentId = null;
+    
+    // Hide results
+    if (results) {
+        results.style.display = 'none';
+    }
+    
+    // Hide payment form
+    hidePaymentForm();
+    
+    // Hide preview grid
+    if (previewGrid) {
+        previewGrid.style.display = 'none';
+    }
+    
+    // Clear custom questions
+    if (customQuestions) {
+        customQuestions.value = '';
+    }
+    
+    // Reset analyze button
+    disableAnalyzeButton();
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    console.log('Started new analysis');
+}; 
