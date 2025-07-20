@@ -390,11 +390,108 @@
             font-size: 1rem;
         }
 
+        /* New styling for structured results */
+        .structured-results {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .appliance-info {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .appliance-type {
+            font-size: 1.3em;
+            color: #2e7d32;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .age-info {
+            font-size: 1.1em;
+            color: #4caf50;
+            margin: 8px 0;
+        }
+
+        .parts-section {
+            margin-bottom: 30px;
+        }
+
+        .parts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .part-card {
+            background: linear-gradient(135deg, #fff8e1, #fffde7);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ffcc02;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .part-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3);
+        }
+
+        .part-name {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #e65100;
+            margin-bottom: 15px;
+        }
+
+        .part-card .youtube-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: #ff0000;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .part-card .youtube-link:hover {
+            background: #cc0000;
+            transform: scale(1.05);
+            color: white;
+        }
+
+        .part-card .youtube-link i {
+            font-size: 1.1em;
+            color: white;
+        }
+
+        .raw-results {
+            background: #f5f5f5;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .analysis-content {
+            line-height: 1.6;
+            color: #333;
+        }
+
         @media (max-width: 768px) {
             .container { padding: 10px; }
             .header h1 { font-size: 2rem; }
             .upload-section, .results { padding: 20px; }
             .business-links { flex-direction: column; }
+            .parts-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -566,31 +663,102 @@
         }
 
         function displayResults(analysis) {
+            console.log('Displaying analysis:', analysis);
             let html = '<h2>🎯 Analysis Results</h2>';
             
-            // Simple display - just show whatever the AI returned
-            html += `
-                <div class="simple-results">
-                    <div class="age-result">
-                        <h3>📅 Age Estimate</h3>
-                        <div class="age-content">
+            // Parse the analysis to extract structured info
+            const lines = analysis.split('\n');
+            let appliance = '';
+            let year = '';
+            let parts = [];
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('Appliance:')) {
+                    appliance = line.replace('Appliance:', '').trim();
+                } else if (line.includes('Manufacturing Year:')) {
+                    year = line.replace(/.*Manufacturing Year:\s*/, '').trim();
+                } else if (line.startsWith('- ') || line.startsWith('• ')) {
+                    // Extract part name
+                    const part = line.replace(/^[-•]\s*/, '').trim();
+                    if (part && !parts.includes(part)) {
+                        parts.push(part);
+                    }
+                }
+            });
+
+            console.log('Parsed data:', { appliance, year, parts });
+
+            // Display structured results
+            html += '<div class="structured-results">';
+            
+            // Appliance info
+            if (appliance || year) {
+                html += '<div class="appliance-info">';
+                if (appliance) {
+                    html += `<h3>📱 Appliance Type</h3><p class="appliance-type">${appliance}</p>`;
+                }
+                if (year) {
+                    const currentYear = new Date().getFullYear();
+                    const age = currentYear - parseInt(year);
+                    html += `<h3>📅 Age Estimate</h3>`;
+                    html += `<p class="age-info">Manufacturing Year: <strong>${year}</strong></p>`;
+                    html += `<p class="age-info">Estimated Age: <strong>${age} years old</strong></p>`;
+                }
+                html += '</div>';
+            }
+
+            // Common issues with YouTube links
+            if (parts.length > 0) {
+                html += '<div class="parts-section">';
+                html += '<h3>🔧 Common Issues</h3>';
+                html += '<div class="parts-grid">';
+                
+                parts.forEach((part, index) => {
+                    const searchTerm = `${appliance || 'appliance'} ${part} replacement repair tutorial`.toLowerCase();
+                    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`;
+                    
+                    html += `
+                        <div class="part-card">
+                            <div class="part-name">${part}</div>
+                            <a href="${youtubeUrl}" target="_blank" class="youtube-link">
+                                <i class="fab fa-youtube"></i> Watch Repair Videos
+                            </a>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+            }
+
+            // Fallback - if parsing fails, show raw content
+            if (!appliance && !year && parts.length === 0) {
+                html += `
+                    <div class="raw-results">
+                        <h3>📋 Analysis</h3>
+                        <div class="analysis-content">
                             ${analysis.replace(/\n/g, '<br>')}
                         </div>
                     </div>
-                    
-                    <div class="business-section">
-                        <h3>🔧 Professional Services</h3>
-                        <div class="business-links">
-                            <a href="https://estimatemyfix.com" target="_blank" class="business-link">
-                                📋 Get Repair Estimate
-                            </a>
-                            <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
-                                🚚 Free Appliance Pickup
-                            </a>
-                        </div>
+                `;
+            }
+
+            // Business links
+            html += `
+                <div class="business-section">
+                    <h3>🏢 Professional Services</h3>
+                    <div class="business-links">
+                        <a href="https://estimatemyfix.com" target="_blank" class="business-link">
+                            📋 Get Repair Estimate
+                        </a>
+                        <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
+                            🚚 Free Appliance Pickup
+                        </a>
                     </div>
                 </div>
             `;
+
+            html += '</div>';
 
             results.innerHTML = html;
             results.style.display = 'block';

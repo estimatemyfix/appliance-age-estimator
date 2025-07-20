@@ -43,14 +43,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Check if this is a video links request
-        const requestType = event.queryStringParameters?.type || 'analysis';
-        
-        if (requestType === 'videos') {
-            return await generateVideoLinks(event, headers);
-        } else {
-            return await performMainAnalysis(event, headers);
-        }
+        return await performMainAnalysis(event, headers);
 
     } catch (error) {
         console.error('=== FUNCTION ERROR ===');
@@ -120,21 +113,27 @@ async function performMainAnalysis(event, headers) {
         };
     }
 
-    console.log('=== CALLING OPENAI API FOR MAIN ANALYSIS ===');
+    console.log('=== CALLING OPENAI API FOR ANALYSIS ===');
 
     const base64Image = file.content.toString('base64');
     console.log('Image converted to base64, length:', base64Image.length);
 
-    // SIMPLE PROMPT - Just get age working
-    const prompt = `Look at this appliance and estimate when it was made based on its style, design, and technology visible. 
+    // SIMPLE BUT EXPANDED PROMPT - Age + 3 common parts
+    const prompt = `Look at this appliance image. Please tell me:
 
-Give me just the manufacturing year in this simple format:
+1. What type of appliance is this?
+2. Estimate the manufacturing year (2010-2024)
+3. List 3 parts that commonly break on this appliance type
 
+Keep it simple. Example format:
+Appliance: Washing Machine
 Manufacturing Year: 2018
+Common Issues:
+- Door seal
+- Heating element  
+- Control board`;
 
-That's it. Just estimate a year between 2010-2024 based on what you see.`;
-
-    console.log('Making OpenAI request for main analysis...');
+    console.log('Making OpenAI request for analysis...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -159,7 +158,7 @@ That's it. Just estimate a year between 2010-2024 based on what you see.`;
                     ]
                 }
             ],
-            max_tokens: 400,
+            max_tokens: 300,
             temperature: 0.3
         })
     });
@@ -179,145 +178,18 @@ That's it. Just estimate a year between 2010-2024 based on what you see.`;
         };
     }
 
-    const aiResponse = await response.json();
-    console.log('OpenAI response received successfully');
+    const data = await response.json();
+    console.log('OpenAI response received, usage:', data.usage);
 
-    if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
-        console.error('Invalid AI response structure:', aiResponse);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ 
-                error: 'Invalid response from AI',
-                details: 'Unexpected response format'
-            })
-        };
-    }
-
-    const analysis = aiResponse.choices[0].message.content;
-    console.log('Analysis length:', analysis.length);
-
-    console.log('=== MAIN ANALYSIS SUCCESS ===');
+    const analysis = data.choices[0].message.content;
+    console.log('Analysis result preview:', analysis?.substring(0, 200));
 
     return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-            success: true,
-            analysis: analysis,
-            type: 'main'
-        })
-    };
-}
-
-async function generateVideoLinks(event, headers) {
-    console.log('=== GENERATING VIDEO LINKS ===');
-    
-    // Parse the request body to get the parts list
-    let requestData;
-    try {
-        requestData = JSON.parse(event.body);
-        console.log('Video request data:', requestData);
-    } catch (parseError) {
-        console.error('Failed to parse video request body:', parseError);
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ 
-                error: 'Invalid request data',
-                details: parseError.message
-            })
-        };
-    }
-
-    if (!requestData.parts || !Array.isArray(requestData.parts)) {
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ error: 'Parts list required for video generation' })
-        };
-    }
-
-    console.log('=== CALLING OPENAI API FOR VIDEO LINKS ===');
-
-    const partsText = requestData.parts.join('\n');
-    const prompt = `For these appliance parts, generate YouTube search terms for repair tutorials:
-
-${partsText}
-
-Format your response EXACTLY like this:
-
-1. **Heating Element**
-   Search: "dryer heating element replacement tutorial"
-
-2. **Door Seal**
-   Search: "dryer door seal replacement how to fix"
-
-Continue for each part provided. Make the search terms specific for repair/replacement tutorials.`;
-
-    console.log('Making OpenAI request for video links...');
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'gpt-4o-mini', // Use cheaper model for this simpler task
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
-            max_tokens: 300,
-            temperature: 0.3
-        })
-    });
-
-    console.log('OpenAI video response status:', response.status);
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenAI API error response:', errorText);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ 
-                error: 'Video link generation failed',
-                details: `OpenAI API error: ${response.status}`
-            })
-        };
-    }
-
-    const aiResponse = await response.json();
-    console.log('OpenAI video response received successfully');
-
-    if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
-        console.error('Invalid AI response structure:', aiResponse);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ 
-                error: 'Invalid response from AI',
-                details: 'Unexpected response format'
-            })
-        };
-    }
-
-    const videoLinks = aiResponse.choices[0].message.content;
-    console.log('Video links length:', videoLinks.length);
-
-    console.log('=== VIDEO LINKS SUCCESS ===');
-
-    return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({
-            success: true,
-            videoLinks: videoLinks,
-            type: 'videos'
+            type: 'analysis',
+            analysis: analysis
         })
     };
 }
