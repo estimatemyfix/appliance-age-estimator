@@ -548,30 +548,30 @@ function formatAnalysisContent(content) {
         }
     );
     
-    // Enhanced eBay link parsing - multiple patterns
+    // Enhanced RepairClinic link parsing - multiple patterns
     formatted = formatted.replace(
-        /🛒\s*\*\*eBay:\*\*\s*(.+?)(?=\n|$)/g, 
+        /🛒\s*\*\*RepairClinic:\*\*\s*(.+?)(?=\n|$)/g, 
         function(match, searchTerm) {
             const cleanTerm = searchTerm.replace(/[\[\]"*]/g, '').trim();
             const encodedTerm = encodeURIComponent(cleanTerm);
-            return `<a href="https://www.ebay.com/sch/i.html?_nkw=${encodedTerm}" target="_blank" class="purchase-link ebay-link">
-                <i class="fas fa-gavel"></i>
-                <span>Buy on eBay</span>
+            return `<a href="https://www.repairclinic.com/SearchResults?q=${encodedTerm}" target="_blank" class="purchase-link repairclinic-link">
+                <i class="fas fa-tools"></i>
+                <span>Buy at RepairClinic</span>
                 <small>${cleanTerm}</small>
             </a>`;
         }
     );
     
-    // Alternative eBay pattern
+    // Alternative RepairClinic pattern
     formatted = formatted.replace(
-        /eBay:\s*([^\n<]+)/g, 
+        /RepairClinic:\s*([^\n<]+)/g, 
         function(match, searchTerm) {
             const cleanTerm = searchTerm.replace(/[\[\]"*🛒]/g, '').replace(/https?:\/\/[^\s]+/g, '').trim();
             if (cleanTerm.length < 3) return match; // Skip if too short
             const encodedTerm = encodeURIComponent(cleanTerm);
-            return `<a href="https://www.ebay.com/sch/i.html?_nkw=${encodedTerm}" target="_blank" class="purchase-link ebay-link">
-                <i class="fas fa-gavel"></i>
-                <span>Buy on eBay</span>
+            return `<a href="https://www.repairclinic.com/SearchResults?q=${encodedTerm}" target="_blank" class="purchase-link repairclinic-link">
+                <i class="fas fa-tools"></i>
+                <span>Buy at RepairClinic</span>
                 <small>${cleanTerm}</small>
             </a>`;
         }
@@ -620,12 +620,12 @@ function formatAnalysisContent(content) {
     );
     
     formatted = formatted.replace(
-        /https:\/\/www\.ebay\.com\/sch\/[^?\s]*\?[^&]*_nkw=([^&\s]+)/g,
+        /https:\/\/www\.repairclinic\.com\/SearchResults\?q=([^&\s]+)/g,
         function(match, searchParam) {
             const decodedTerm = decodeURIComponent(searchParam).replace(/\+/g, ' ');
-            return `<a href="${match}" target="_blank" class="purchase-link ebay-link">
-                <i class="fas fa-gavel"></i>
-                <span>Buy on eBay</span>
+            return `<a href="${match}" target="_blank" class="purchase-link repairclinic-link">
+                <i class="fas fa-tools"></i>
+                <span>Buy at RepairClinic</span>
                 <small>${decodedTerm}</small>
             </a>`;
         }

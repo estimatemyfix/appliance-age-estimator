@@ -146,23 +146,23 @@ Provide analysis in this format:
 ## 🔧 TOP 5 REPLACEMENT PARTS & PURCHASE LINKS
 - **[Part 1 name]**: OEM# [real part number] - **Part Cost: $XX-$XX**
   - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
-  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+  - 🛒 **RepairClinic:** https://www.repairclinic.com/SearchResults?q=[part_number]
 
 - **[Part 2 name]**: OEM# [real part number] - **Part Cost: $XX-$XX**
   - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
-  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+  - 🛒 **RepairClinic:** https://www.repairclinic.com/SearchResults?q=[part_number]
 
 - **[Part 3 name]**: OEM# [real part number] - **Part Cost: $XX-$XX**
   - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
-  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+  - 🛒 **RepairClinic:** https://www.repairclinic.com/SearchResults?q=[part_number]
 
 - **[Part 4 name]**: OEM# [real part number] - **Part Cost: $XX-$XX**
   - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
-  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+  - 🛒 **RepairClinic:** https://www.repairclinic.com/SearchResults?q=[part_number]
 
 - **[Part 5 name]**: OEM# [real part number] - **Part Cost: $XX-$XX**
   - 🛒 **Amazon:** https://www.amazon.com/s?k=[part_number]+[appliance_type]
-  - 🛒 **eBay:** https://www.ebay.com/sch/i.html?_nkw=[part_number]
+  - 🛒 **RepairClinic:** https://www.repairclinic.com/SearchResults?q=[part_number]
 
 ## 🎥 REPAIR VIDEO RESOURCES
 - **[Specific repair task 1]** - YouTube: "[search term like 'dryer heating element replacement']"
