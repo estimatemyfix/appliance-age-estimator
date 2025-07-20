@@ -1473,20 +1473,21 @@ body {
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: var(--space-md) var(--space-lg);
+    padding: var(--space-md) var(--space-xl);
     margin: var(--space-sm);
     border-radius: 16px;
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
     overflow: hidden;
-    min-width: 160px;
+    min-width: 140px;
     justify-content: center;
     box-shadow: var(--shadow-soft);
+    color: white;
 }
 
 .purchase-link::before {
@@ -1496,7 +1497,7 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
     transition: left 0.6s ease;
 }
 
@@ -1510,8 +1511,8 @@ body {
 }
 
 .amazon-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 149, 0, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(255, 149, 0, 0.5);
 }
 
 .repairclinic-link {
@@ -1520,24 +1521,24 @@ body {
 }
 
 .repairclinic-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 102, 204, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 102, 204, 0.5);
 }
 
-.purchase-link i {
-    font-size: 1.1rem;
+.purchase-link i,
+.video-link i {
+    font-size: 1.2rem;
 }
 
-.purchase-link small {
-    display: block;
-    font-size: 0.75rem;
-    opacity: 0.9;
-    font-weight: 400;
-    margin-top: 2px;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-    max-width: 120px;
+.purchase-link span,
+.video-link span {
+    font-weight: 600;
+}
+
+/* Remove the small text styling since we're not using it anymore */
+.purchase-link small,
+.video-link small {
+    display: none;
 }
 
 /* ================================
@@ -1546,44 +1547,53 @@ body {
 
 .video-link {
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: var(--space-md) var(--space-lg);
-    background: linear-gradient(135deg, #ff0000, #cc0000);
-    border-radius: var(--radius-lg);
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-xl);
+    margin: var(--space-sm);
+    border-radius: 16px;
     text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    min-width: 120px;
+    justify-content: center;
+    box-shadow: var(--shadow-soft);
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
     color: white;
-    font-weight: 600;
-    margin: var(--space-xs) var(--space-sm);
-    min-width: 160px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 20px rgba(255, 0, 0, 0.25);
 }
 
-.video-link:hover {
-    background: linear-gradient(135deg, #ff3333, #ff1744);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 0, 0, 0.4);
+.video-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: left 0.6s ease;
 }
 
-.video-link i {
-    font-size: 1.75rem;
-    margin-bottom: var(--space-xs);
+.video-link:hover::before {
+    left: 100%;
 }
 
-.video-link span {
-    font-size: 0.875rem;
-    font-weight: 600;
-    margin-bottom: 2px;
+.youtube-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(255, 0, 0, 0.5);
 }
 
-.video-link small {
-    font-size: 0.75rem;
-    opacity: 0.9;
-    font-weight: 400;
-    line-height: 1.2;
-}
+
+
+
+
+
+
+
 
 /* ================================
    WARRANTY CARDS

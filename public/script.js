@@ -519,116 +519,65 @@ function formatAnalysisContent(content) {
     // Convert bold text
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="highlight">$1</strong>');
     
-    // Enhanced Amazon link parsing - multiple patterns
+    // Simple, reliable link replacements
+    // Replace any Amazon-related text with clean buy links
     formatted = formatted.replace(
-        /🛒\s*\*\*Amazon:\*\*\s*(.+?)(?=\n|$)/g, 
-        function(match, searchTerm) {
-            const cleanTerm = searchTerm.replace(/[\[\]"*]/g, '').trim();
-            const encodedTerm = encodeURIComponent(cleanTerm);
-            return `<a href="https://www.amazon.com/s?k=${encodedTerm}" target="_blank" class="purchase-link amazon-link">
-                <i class="fab fa-amazon"></i>
-                <span>Buy on Amazon</span>
-                <small>${cleanTerm}</small>
-            </a>`;
-        }
-    );
-    
-    // Alternative Amazon pattern
-    formatted = formatted.replace(
-        /Amazon:\s*([^\n<]+)/g, 
-        function(match, searchTerm) {
-            const cleanTerm = searchTerm.replace(/[\[\]"*🛒]/g, '').replace(/https?:\/\/[^\s]+/g, '').trim();
-            if (cleanTerm.length < 3) return match; // Skip if too short
-            const encodedTerm = encodeURIComponent(cleanTerm);
-            return `<a href="https://www.amazon.com/s?k=${encodedTerm}" target="_blank" class="purchase-link amazon-link">
-                <i class="fab fa-amazon"></i>
-                <span>Buy on Amazon</span>
-                <small>${cleanTerm}</small>
-            </a>`;
-        }
-    );
-    
-    // Enhanced RepairClinic link parsing - multiple patterns
-    formatted = formatted.replace(
-        /🛒\s*\*\*RepairClinic:\*\*\s*(.+?)(?=\n|$)/g, 
-        function(match, searchTerm) {
-            const cleanTerm = searchTerm.replace(/[\[\]"*]/g, '').trim();
-            const encodedTerm = encodeURIComponent(cleanTerm);
-            return `<a href="https://www.repairclinic.com/SearchResults?q=${encodedTerm}" target="_blank" class="purchase-link repairclinic-link">
-                <i class="fas fa-tools"></i>
-                <span>Buy at RepairClinic</span>
-                <small>${cleanTerm}</small>
-            </a>`;
-        }
-    );
-    
-    // Alternative RepairClinic pattern
-    formatted = formatted.replace(
-        /RepairClinic:\s*([^\n<]+)/g, 
-        function(match, searchTerm) {
-            const cleanTerm = searchTerm.replace(/[\[\]"*🛒]/g, '').replace(/https?:\/\/[^\s]+/g, '').trim();
-            if (cleanTerm.length < 3) return match; // Skip if too short
-            const encodedTerm = encodeURIComponent(cleanTerm);
-            return `<a href="https://www.repairclinic.com/SearchResults?q=${encodedTerm}" target="_blank" class="purchase-link repairclinic-link">
-                <i class="fas fa-tools"></i>
-                <span>Buy at RepairClinic</span>
-                <small>${cleanTerm}</small>
-            </a>`;
-        }
-    );
-    
-    // Enhanced YouTube repair video links - specifically for top 5 replacement parts
-    formatted = formatted.replace(
-        /🎥\s*\*\*YouTube:\*\*\s*"([^"]+)"/g, 
-        function(match, searchTerm) {
-            // Enhance search term to focus on replacement/repair for top 5 parts
-            const repairTerm = `${searchTerm} replacement repair how to replace install fix tutorial step by step`;
-            const encodedTerm = encodeURIComponent(repairTerm);
-            return `<a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="video-link youtube-link">
-                <i class="fab fa-youtube"></i>
-                <span>Watch Repair Tutorial</span>
-                <small>How to replace: ${searchTerm}</small>
-            </a>`;
-        }
-    );
-    
-    // Alternative YouTube pattern without emoji
-    formatted = formatted.replace(
-        /YouTube:\s*"([^"]+)"/g, 
-        function(match, searchTerm) {
-            const repairTerm = `${searchTerm} replacement repair how to replace install fix tutorial step by step`;
-            const encodedTerm = encodeURIComponent(repairTerm);
-            return `<a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="video-link youtube-link">
-                <i class="fab fa-youtube"></i>
-                <span>Watch Repair Tutorial</span>
-                <small>How to replace: ${searchTerm}</small>
-            </a>`;
-        }
-    );
-    
-    // Handle any remaining unformatted links that might contain URLs
-    formatted = formatted.replace(
-        /https:\/\/www\.amazon\.com\/s\?k=([^&\s]+)/g,
-        function(match, searchParam) {
-            const decodedTerm = decodeURIComponent(searchParam).replace(/\+/g, ' ');
-            return `<a href="${match}" target="_blank" class="purchase-link amazon-link">
-                <i class="fab fa-amazon"></i>
-                <span>Buy on Amazon</span>
-                <small>${decodedTerm}</small>
-            </a>`;
-        }
+        /🛒\s*\*\*Amazon:\*\*[^\n]*/g,
+        '<a href="https://www.amazon.com/s?k=appliance+parts" target="_blank" class="purchase-link amazon-link"><i class="fab fa-amazon"></i><span>Buy Part Here</span></a>'
     );
     
     formatted = formatted.replace(
-        /https:\/\/www\.repairclinic\.com\/SearchResults\?q=([^&\s]+)/g,
-        function(match, searchParam) {
-            const decodedTerm = decodeURIComponent(searchParam).replace(/\+/g, ' ');
-            return `<a href="${match}" target="_blank" class="purchase-link repairclinic-link">
-                <i class="fas fa-tools"></i>
-                <span>Buy at RepairClinic</span>
-                <small>${decodedTerm}</small>
-            </a>`;
-        }
+        /Amazon:\s*[^\n<]*/g,
+        '<a href="https://www.amazon.com/s?k=appliance+parts" target="_blank" class="purchase-link amazon-link"><i class="fab fa-amazon"></i><span>Buy Part Here</span></a>'
+    );
+    
+    // Replace any RepairClinic-related text with clean buy links
+    formatted = formatted.replace(
+        /🛒\s*\*\*RepairClinic:\*\*[^\n]*/g,
+        '<a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link"><i class="fas fa-tools"></i><span>Buy Part Here</span></a>'
+    );
+    
+    formatted = formatted.replace(
+        /RepairClinic:\s*[^\n<]*/g,
+        '<a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link"><i class="fas fa-tools"></i><span>Buy Part Here</span></a>'
+    );
+    
+    // Replace any eBay references that might still exist
+    formatted = formatted.replace(
+        /🛒\s*\*\*eBay:\*\*[^\n]*/g,
+        '<a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link"><i class="fas fa-tools"></i><span>Buy Part Here</span></a>'
+    );
+    
+    formatted = formatted.replace(
+        /eBay:\s*[^\n<]*/g,
+        '<a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link"><i class="fas fa-tools"></i><span>Buy Part Here</span></a>'
+    );
+    
+    // Simple YouTube video links
+    formatted = formatted.replace(
+        /🎥\s*\*\*YouTube:\*\*[^\n]*/g,
+        '<a href="https://www.youtube.com/results?search_query=appliance+repair+how+to+fix" target="_blank" class="video-link youtube-link"><i class="fab fa-youtube"></i><span>Watch Now</span></a>'
+    );
+    
+    formatted = formatted.replace(
+        /YouTube:\s*[^\n<]*/g,
+        '<a href="https://www.youtube.com/results?search_query=appliance+repair+how+to+fix" target="_blank" class="video-link youtube-link"><i class="fab fa-youtube"></i><span>Watch Now</span></a>'
+    );
+    
+    // Clean up any remaining Amazon/eBay URLs that might be in the text
+    formatted = formatted.replace(
+        /https:\/\/www\.amazon\.com\/s\?k=[^\s<]*/g,
+        '<a href="https://www.amazon.com/s?k=appliance+parts" target="_blank" class="purchase-link amazon-link"><i class="fab fa-amazon"></i><span>Buy Part Here</span></a>'
+    );
+    
+    formatted = formatted.replace(
+        /https:\/\/www\.repairclinic\.com\/[^\s<]*/g,
+        '<a href="https://www.repairclinic.com" target="_blank" class="purchase-link repairclinic-link"><i class="fas fa-tools"></i><span>Buy Part Here</span></a>'
+    );
+    
+    formatted = formatted.replace(
+        /https:\/\/www\.youtube\.com\/[^\s<]*/g,
+        '<a href="https://www.youtube.com/results?search_query=appliance+repair+how+to+fix" target="_blank" class="video-link youtube-link"><i class="fab fa-youtube"></i><span>Watch Now</span></a>'
     );
     
     // Convert price ranges to highlighted spans
