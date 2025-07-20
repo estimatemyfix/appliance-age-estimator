@@ -314,6 +314,82 @@
             border-color: #28a745;
         }
 
+        .video-request-section {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 10px;
+            border: 1px dashed #667eea;
+        }
+
+        .video-request-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .video-request-btn:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .video-request-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .video-request-btn i {
+            font-size: 1.2rem;
+        }
+
+        .video-request-section p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .video-section {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #fff3cd;
+            border-radius: 6px;
+            border: 1px solid #ffeaa7;
+        }
+
+        .youtube-link {
+            color: #dc3545;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .youtube-link:hover {
+            text-decoration: underline;
+        }
+
+        .youtube-link i {
+            color: #ff0000;
+            font-size: 1rem;
+        }
+
         @media (max-width: 768px) {
             .container { padding: 10px; }
             .header h1 { font-size: 2rem; }
@@ -497,6 +573,7 @@
             let partsContent = '';
             let inAgeSection = false;
             let inPartsSection = false;
+            let foundParts = [];
 
             // Parse content
             for (let line of lines) {
@@ -536,36 +613,44 @@
                 html += '</div>';
             }
 
-            // Display parts section
+            // Display parts section (without video links initially)
             if (partsContent) {
                 html += '<div class="parts-section"><h3>Common Part Failures</h3>';
 
                 const partLines = partsContent.split('\n').filter(l => l.trim());
                 let currentPart = '';
                 let partNumber = '';
-                let searchTerm = '';
 
                 for (let line of partLines) {
                     if (/^\d+\.\s/.test(line)) {
                         // Save previous part
-                        if (currentPart && partNumber && searchTerm) {
-                            html += createPartCard(currentPart, partNumber, searchTerm);
+                        if (currentPart && partNumber) {
+                            html += createPartCardBasic(currentPart, partNumber);
+                            foundParts.push(currentPart);
                         }
                         // Start new part
                         currentPart = line.replace(/^\d+\.\s\*\*/, '').replace('**', '');
                         partNumber = '';
-                        searchTerm = '';
                     } else if (line.includes('Part Number:')) {
                         partNumber = line.replace('Part Number:', '').trim();
-                    } else if (line.includes('Search:')) {
-                        searchTerm = line.replace('Search:', '').replace(/"/g, '').trim();
                     }
                 }
 
                 // Add the last part
-                if (currentPart && partNumber && searchTerm) {
-                    html += createPartCard(currentPart, partNumber, searchTerm);
+                if (currentPart && partNumber) {
+                    html += createPartCardBasic(currentPart, partNumber);
+                    foundParts.push(currentPart);
                 }
+
+                // Add video request button
+                html += `
+                    <div class="video-request-section">
+                        <button class="video-request-btn" onclick="requestVideoLinks(${JSON.stringify(foundParts).replace(/"/g, '&quot;')})">
+                            <i class="fab fa-youtube"></i> Get Repair Video Tutorials
+                        </button>
+                        <p>Click to get YouTube search links for these parts</p>
+                    </div>
+                `;
 
                 html += '</div>';
             }
@@ -590,37 +675,100 @@
             results.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function createPartCard(partName, partNumber, searchTerm) {
-            const cardId = 'part-' + Math.random().toString(36).substr(2, 9);
+        function createPartCardBasic(partName, partNumber) {
             return `
                 <div class="part-card">
                     <div class="part-title">${partName}</div>
                     <div class="part-number">${partNumber}</div>
-                    <div class="search-term" id="${cardId}">
-                        ${searchTerm}
-                        <button class="copy-btn" onclick="copyToClipboard('${cardId}')">
-                            Copy
-                        </button>
-                    </div>
                 </div>
             `;
         }
 
-        function copyToClipboard(elementId) {
-            const element = document.getElementById(elementId);
-            const text = element.textContent.replace('Copy', '').trim();
+        async function requestVideoLinks(parts) {
+            console.log('Requesting video links for parts:', parts);
             
-            navigator.clipboard.writeText(text).then(() => {
-                const button = element.querySelector('.copy-btn');
-                const originalText = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                button.style.background = '#00d4aa';
+            const videoBtn = document.querySelector('.video-request-btn');
+            const originalText = videoBtn.innerHTML;
+            
+            // Show loading state
+            videoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading Video Links...';
+            videoBtn.disabled = true;
+
+            try {
+                const response = await fetch('/.netlify/functions/analyze-appliance?type=videos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        parts: parts
+                    })
+                });
+
+                console.log('Video response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Video request error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                console.log('Video links response:', result);
                 
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.style.background = '#00d4aa';
-                }, 2000);
-            });
+                if (!result.videoLinks) {
+                    throw new Error('No video links received');
+                }
+                
+                // Replace the video request section with actual video links
+                displayVideoLinks(result.videoLinks);
+
+            } catch (error) {
+                console.error('Video links error:', error);
+                alert('Failed to load video tutorials. Please try again.');
+                
+                // Reset button
+                videoBtn.innerHTML = originalText;
+                videoBtn.disabled = false;
+            }
+        }
+
+        function displayVideoLinks(videoLinksContent) {
+            console.log('Displaying video links:', videoLinksContent);
+            
+            // Parse the video links and add them to existing part cards
+            const lines = videoLinksContent.split('\n').filter(l => l.trim());
+            const partCards = document.querySelectorAll('.part-card');
+            let videoIndex = 0;
+
+            for (let line of lines) {
+                if (/^\d+\.\s/.test(line)) {
+                    // Extract part name
+                    const partName = line.replace(/^\d+\.\s\*\*/, '').replace('**', '');
+                } else if (line.includes('Search:')) {
+                    // Extract search term and add to corresponding part card
+                    const searchTerm = line.replace('Search:', '').replace(/"/g, '').trim();
+                    
+                    if (partCards[videoIndex]) {
+                        const videoDiv = document.createElement('div');
+                        videoDiv.className = 'video-section';
+                        videoDiv.innerHTML = `
+                            <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}" 
+                               target="_blank" class="youtube-link">
+                                <i class="fab fa-youtube"></i> Watch Repair Tutorial
+                            </a>
+                        `;
+                        partCards[videoIndex].appendChild(videoDiv);
+                        videoIndex++;
+                    }
+                }
+            }
+
+            // Remove the video request section
+            const videoRequestSection = document.querySelector('.video-request-section');
+            if (videoRequestSection) {
+                videoRequestSection.remove();
+            }
         }
     </script>
 </body>

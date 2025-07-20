@@ -3,7 +3,7 @@ const multipart = require('lambda-multipart-parser');
 exports.handler = async (event, context) => {
     console.log('=== FUNCTION START ===');
     console.log('Method:', event.httpMethod);
-    console.log('Headers:', JSON.stringify(event.headers, null, 2));
+    console.log('Query params:', event.queryStringParameters);
     
     // CORS headers
     const headers = {
@@ -28,7 +28,7 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        console.log('=== PARSING MULTIPART DATA ===');
+        console.log('=== CHECKING REQUEST TYPE ===');
         
         // Check if we have the required environment variable
         if (!process.env.OPENAI_API_KEY) {
@@ -43,165 +43,14 @@ exports.handler = async (event, context) => {
             };
         }
 
-        console.log('OpenAI API key found');
-
-        // Parse multipart form data
-        let result;
-        try {
-            result = await multipart.parse(event);
-            console.log('Multipart parsing successful');
-            console.log('Result structure:', {
-                hasFiles: !!result.files,
-                fileCount: result.files?.length || 0,
-                hasFields: !!result.fields,
-                fieldKeys: Object.keys(result.fields || {})
-            });
-        } catch (parseError) {
-            console.error('Multipart parsing failed:', parseError);
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ 
-                    error: 'Failed to parse uploaded data',
-                    details: parseError.message
-                })
-            };
+        // Check if this is a video links request
+        const requestType = event.queryStringParameters?.type || 'analysis';
+        
+        if (requestType === 'videos') {
+            return await generateVideoLinks(event, headers);
+        } else {
+            return await performMainAnalysis(event, headers);
         }
-
-        if (!result.files || result.files.length === 0) {
-            console.error('No files found in upload');
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'No images uploaded' })
-            };
-        }
-
-        // Process the first file
-        const file = result.files[0];
-        console.log('Processing file:', {
-            contentType: file.contentType,
-            filename: file.filename,
-            size: file.content.length
-        });
-
-        if (!file.contentType || !file.contentType.startsWith('image/')) {
-            console.error('Invalid file type:', file.contentType);
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Please upload a valid image file' })
-            };
-        }
-
-        console.log('=== CALLING OPENAI API ===');
-
-        const base64Image = file.content.toString('base64');
-        console.log('Image converted to base64, length:', base64Image.length);
-
-        // Simplified prompt for testing
-        const prompt = `Look at this appliance image and tell me:
-1. What type of appliance this is
-2. Estimate its age (manufacturing year and current age)
-3. List 5 common parts that fail on this type of appliance
-
-Format your response like this:
-
-## AGE
-Manufacturing Year: 2015
-Current Age: 9 years old
-
-## TOP 5 COMMON PART FAILURES
-
-1. **Heating Element**
-   Part Number: WE11X10018
-   Search: "dryer heating element WE11X10018"
-
-2. **Door Seal**
-   Part Number: WH08X10036
-   Search: "dryer door seal WH08X10036"
-
-[Continue for parts 3, 4, and 5]`;
-
-        console.log('Making OpenAI request...');
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'gpt-4o',
-                messages: [
-                    {
-                        role: 'user',
-                        content: [
-                            { type: 'text', text: prompt },
-                            {
-                                type: 'image_url',
-                                image_url: { 
-                                    url: `data:${file.contentType};base64,${base64Image}`,
-                                    detail: 'low' // Use low detail for faster processing
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens: 600,
-                temperature: 0.3
-            })
-        });
-
-        console.log('OpenAI response status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('OpenAI API error response:', errorText);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ 
-                    error: 'AI analysis failed',
-                    details: `OpenAI API error: ${response.status}`
-                })
-            };
-        }
-
-        const aiResponse = await response.json();
-        console.log('OpenAI response received successfully');
-
-        if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
-            console.error('Invalid AI response structure:', aiResponse);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({ 
-                    error: 'Invalid response from AI',
-                    details: 'Unexpected response format'
-                })
-            };
-        }
-
-        const analysis = aiResponse.choices[0].message.content;
-        console.log('Analysis length:', analysis.length);
-        console.log('Analysis preview:', analysis.substring(0, 200) + '...');
-
-        console.log('=== SUCCESS ===');
-
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                success: true,
-                analysis: analysis,
-                debug: {
-                    fileProcessed: true,
-                    fileSize: file.content.length,
-                    aiResponseLength: analysis.length
-                }
-            })
-        };
 
     } catch (error) {
         console.error('=== FUNCTION ERROR ===');
@@ -220,3 +69,278 @@ Current Age: 9 years old
         };
     }
 };
+
+async function performMainAnalysis(event, headers) {
+    console.log('=== PERFORMING MAIN ANALYSIS ===');
+    
+    // Parse multipart form data
+    let result;
+    try {
+        result = await multipart.parse(event);
+        console.log('Multipart parsing successful');
+        console.log('Result structure:', {
+            hasFiles: !!result.files,
+            fileCount: result.files?.length || 0
+        });
+    } catch (parseError) {
+        console.error('Multipart parsing failed:', parseError);
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Failed to parse uploaded data',
+                details: parseError.message
+            })
+        };
+    }
+
+    if (!result.files || result.files.length === 0) {
+        console.error('No files found in upload');
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'No images uploaded' })
+        };
+    }
+
+    // Process the first file
+    const file = result.files[0];
+    console.log('Processing file:', {
+        contentType: file.contentType,
+        filename: file.filename,
+        size: file.content.length
+    });
+
+    if (!file.contentType || !file.contentType.startsWith('image/')) {
+        console.error('Invalid file type:', file.contentType);
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Please upload a valid image file' })
+        };
+    }
+
+    console.log('=== CALLING OPENAI API FOR MAIN ANALYSIS ===');
+
+    const base64Image = file.content.toString('base64');
+    console.log('Image converted to base64, length:', base64Image.length);
+
+    // Simple prompt - just age and parts, no video links
+    const prompt = `Analyze this appliance image and provide ONLY:
+
+1. What type of appliance this is
+2. Estimate its age (manufacturing year and current age)
+3. List the 5 most common parts that fail on this appliance type with part numbers
+
+Format your response EXACTLY like this:
+
+## AGE
+Manufacturing Year: 2015
+Current Age: 9 years old
+
+## TOP 5 COMMON PART FAILURES
+
+1. **Heating Element**
+   Part Number: WE11X10018
+
+2. **Door Seal**
+   Part Number: WH08X10036
+
+3. **Thermal Fuse**
+   Part Number: WE4X750
+
+4. **Drum Belt**
+   Part Number: WE12M29
+
+5. **Control Board**
+   Part Number: WE04X25437
+
+Be specific with real part numbers for this appliance type.`;
+
+    console.log('Making OpenAI request for main analysis...');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+                {
+                    role: 'user',
+                    content: [
+                        { type: 'text', text: prompt },
+                        {
+                            type: 'image_url',
+                            image_url: { 
+                                url: `data:${file.contentType};base64,${base64Image}`,
+                                detail: 'low'
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens: 400,
+            temperature: 0.3
+        })
+    });
+
+    console.log('OpenAI response status:', response.status);
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error response:', errorText);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'AI analysis failed',
+                details: `OpenAI API error: ${response.status}`
+            })
+        };
+    }
+
+    const aiResponse = await response.json();
+    console.log('OpenAI response received successfully');
+
+    if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
+        console.error('Invalid AI response structure:', aiResponse);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Invalid response from AI',
+                details: 'Unexpected response format'
+            })
+        };
+    }
+
+    const analysis = aiResponse.choices[0].message.content;
+    console.log('Analysis length:', analysis.length);
+
+    console.log('=== MAIN ANALYSIS SUCCESS ===');
+
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            success: true,
+            analysis: analysis,
+            type: 'main'
+        })
+    };
+}
+
+async function generateVideoLinks(event, headers) {
+    console.log('=== GENERATING VIDEO LINKS ===');
+    
+    // Parse the request body to get the parts list
+    let requestData;
+    try {
+        requestData = JSON.parse(event.body);
+        console.log('Video request data:', requestData);
+    } catch (parseError) {
+        console.error('Failed to parse video request body:', parseError);
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Invalid request data',
+                details: parseError.message
+            })
+        };
+    }
+
+    if (!requestData.parts || !Array.isArray(requestData.parts)) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ error: 'Parts list required for video generation' })
+        };
+    }
+
+    console.log('=== CALLING OPENAI API FOR VIDEO LINKS ===');
+
+    const partsText = requestData.parts.join('\n');
+    const prompt = `For these appliance parts, generate YouTube search terms for repair tutorials:
+
+${partsText}
+
+Format your response EXACTLY like this:
+
+1. **Heating Element**
+   Search: "dryer heating element replacement tutorial"
+
+2. **Door Seal**
+   Search: "dryer door seal replacement how to fix"
+
+Continue for each part provided. Make the search terms specific for repair/replacement tutorials.`;
+
+    console.log('Making OpenAI request for video links...');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini', // Use cheaper model for this simpler task
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            max_tokens: 300,
+            temperature: 0.3
+        })
+    });
+
+    console.log('OpenAI video response status:', response.status);
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error response:', errorText);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Video link generation failed',
+                details: `OpenAI API error: ${response.status}`
+            })
+        };
+    }
+
+    const aiResponse = await response.json();
+    console.log('OpenAI video response received successfully');
+
+    if (!aiResponse.choices || !aiResponse.choices[0] || !aiResponse.choices[0].message) {
+        console.error('Invalid AI response structure:', aiResponse);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Invalid response from AI',
+                details: 'Unexpected response format'
+            })
+        };
+    }
+
+    const videoLinks = aiResponse.choices[0].message.content;
+    console.log('Video links length:', videoLinks.length);
+
+    console.log('=== VIDEO LINKS SUCCESS ===');
+
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            success: true,
+            videoLinks: videoLinks,
+            type: 'videos'
+        })
+    };
+}
