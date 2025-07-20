@@ -118,22 +118,36 @@ async function performMainAnalysis(event, headers) {
     const base64Image = file.content.toString('base64');
     console.log('Image converted to base64, length:', base64Image.length);
 
-    // SIMPLE BUT EXPANDED PROMPT - Age + 3 common parts
-    const prompt = `Look at this appliance image. Please tell me:
+    // Check what type of request this is
+    const requestType = event.queryStringParameters?.type || 'age';
+    
+    if (requestType === 'age') {
+        return await getAgeEstimate(file, headers);
+    } else if (requestType === 'parts') {
+        return await getCommonParts(event, headers);
+    } else if (requestType === 'manual') {
+        return await getManualInfo(event, headers);
+    }
+}
+
+async function getAgeEstimate(file, headers) {
+    console.log('=== GETTING AGE ESTIMATE ===');
+    
+    const base64Image = file.content.toString('base64');
+    
+    // SUPER SIMPLE PROMPT - Just age and type
+    const prompt = `Look at this appliance image. Tell me:
 
 1. What type of appliance is this?
-2. Estimate the manufacturing year (2010-2024)
-3. List 3 parts that commonly break on this appliance type
+2. What year was it manufactured? (estimate based on design/style)
 
-Keep it simple. Example format:
-Appliance: Washing Machine
-Manufacturing Year: 2018
-Common Issues:
-- Door seal
-- Heating element  
-- Control board`;
+Format:
+Appliance: [type]
+Year: [4-digit year]
 
-    console.log('Making OpenAI request for analysis...');
+Keep it simple - just those two lines.`;
+
+    console.log('Making OpenAI request for age estimate...');
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -158,7 +172,7 @@ Common Issues:
                     ]
                 }
             ],
-            max_tokens: 300,
+            max_tokens: 100,
             temperature: 0.3
         })
     });
@@ -172,7 +186,7 @@ Common Issues:
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
-                error: 'AI analysis failed',
+                error: 'Age estimation failed',
                 details: `OpenAI API error: ${response.status}`
             })
         };
@@ -182,14 +196,169 @@ Common Issues:
     console.log('OpenAI response received, usage:', data.usage);
 
     const analysis = data.choices[0].message.content;
-    console.log('Analysis result preview:', analysis?.substring(0, 200));
+    console.log('Age analysis result:', analysis);
 
     return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
-            type: 'analysis',
+            type: 'age',
             analysis: analysis
+        })
+    };
+}
+
+async function getCommonParts(event, headers) {
+    console.log('=== GETTING COMMON PARTS ===');
+    
+    // Parse the request body to get appliance type
+    let requestData;
+    try {
+        requestData = JSON.parse(event.body);
+        console.log('Parts request data:', requestData);
+    } catch (parseError) {
+        console.error('Failed to parse parts request body:', parseError);
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Invalid request data',
+                details: parseError.message
+            })
+        };
+    }
+
+    const applianceType = requestData.appliance || 'appliance';
+    
+    // Simple prompt for parts only
+    const prompt = `List the 5 most common parts that fail on a ${applianceType}. 
+
+Format:
+1. [Part name]
+2. [Part name]  
+3. [Part name]
+4. [Part name]
+5. [Part name]
+
+Just the part names, nothing else.`;
+
+    console.log('Making OpenAI request for common parts...');
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini', // Use cheaper model for simple text
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            max_tokens: 150,
+            temperature: 0.3
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error response:', errorText);
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Parts analysis failed',
+                details: `OpenAI API error: ${response.status}`
+            })
+        };
+    }
+
+    const data = await response.json();
+    const parts = data.choices[0].message.content;
+    console.log('Parts result:', parts);
+
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            type: 'parts',
+            parts: parts
+        })
+    };
+}
+
+async function getManualInfo(event, headers) {
+    console.log('=== GETTING MANUAL INFO ===');
+    
+    // Parse the request body
+    let requestData;
+    try {
+        requestData = JSON.parse(event.body);
+    } catch (parseError) {
+        return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Invalid request data',
+                details: parseError.message
+            })
+        };
+    }
+
+    const applianceType = requestData.appliance || 'appliance';
+    const year = requestData.year || 'unknown';
+    
+    const prompt = `For a ${year} ${applianceType}, provide:
+
+1. Model number format/pattern
+2. Where to find the model number
+3. Common service manual sources
+
+Keep it brief and practical.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+                {
+                    role: 'user',
+                    content: prompt
+                }
+            ],
+            max_tokens: 200,
+            temperature: 0.3
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        return {
+            statusCode: 500,
+            headers,
+            body: JSON.stringify({ 
+                error: 'Manual info failed',
+                details: `OpenAI API error: ${response.status}`
+            })
+        };
+    }
+
+    const data = await response.json();
+    const manualInfo = data.choices[0].message.content;
+
+    return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+            type: 'manual',
+            manualInfo: manualInfo
         })
     };
 }

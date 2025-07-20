@@ -486,12 +486,145 @@
             color: #333;
         }
 
+        /* Progressive step styling */
+        .step-results {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #dee2e6;
+        }
+
+        .completed-step {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #c8e6c9;
+        }
+
+        .completed-step h3 {
+            margin: 0 0 5px 0;
+            color: #155724;
+            font-size: 1.1em;
+        }
+
+        .completed-step .age-info {
+            margin: 0;
+            color: #155724;
+            font-size: 0.9em;
+        }
+
+        .next-step-section {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #ffc107;
+        }
+
+        .next-step-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .step-btn {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .step-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .step-btn.secondary {
+            background: linear-gradient(135deg, #6c757d, #545b62);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .step-btn.secondary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #545b62, #3d4142);
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+        }
+
+        .parts-list {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .part-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1.05em;
+            color: #495057;
+        }
+
+        .part-item:last-child {
+            border-bottom: none;
+        }
+
+        .youtube-section {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+
+        .youtube-section h4 {
+            color: #c62828;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .manual-info {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .manual-info h4 {
+            color: #1565c0;
+            margin-bottom: 15px;
+        }
+
+        .manual-content {
+            color: #1976d2;
+            line-height: 1.6;
+        }
+
         @media (max-width: 768px) {
             .container { padding: 10px; }
             .header h1 { font-size: 2rem; }
             .upload-section, .results { padding: 20px; }
             .business-links { flex-direction: column; }
             .parts-grid { grid-template-columns: 1fr; }
+            .step-results, .next-step-section { padding: 20px; }
         }
     </style>
 </head>
@@ -662,114 +795,68 @@
             }
         }
 
+        let applianceData = {
+            type: '',
+            year: '',
+            parts: [],
+            currentStep: 1
+        };
+
         function displayResults(analysis) {
-            console.log('🔍 RAW AI RESPONSE:', analysis);
-            let html = '<h2>🎯 Analysis Results</h2>';
-
-            // DEBUG: Show raw response first
-            html += `
-                <div style="background: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 8px; border: 2px solid #999;">
-                    <h4>🐛 DEBUG - Raw AI Response:</h4>
-                    <pre style="white-space: pre-wrap; font-family: monospace; background: white; padding: 15px; border-radius: 5px;">${analysis}</pre>
-                </div>
-            `;
-
-            // Try to parse but be very flexible
-            const lines = analysis.split('\n');
-            let appliance = '';
-            let year = '';
-            let parts = [];
+            console.log('Age analysis received:', analysis);
             
-            console.log('🔍 PARSING LINES:', lines);
-
-            lines.forEach((line, index) => {
+            // Parse the simple age response
+            const lines = analysis.split('\n');
+            lines.forEach(line => {
                 line = line.trim();
-                console.log(`Line ${index}: "${line}"`);
-                
-                // Look for appliance type (very flexible)
-                if (line.toLowerCase().includes('appliance') && line.includes(':')) {
-                    appliance = line.split(':')[1]?.trim() || '';
-                    console.log('Found appliance:', appliance);
-                }
-                
-                // Look for year (very flexible) 
-                if (line.toLowerCase().includes('year') && line.includes(':')) {
+                if (line.toLowerCase().includes('appliance:')) {
+                    applianceData.type = line.split(':')[1]?.trim() || '';
+                } else if (line.toLowerCase().includes('year:')) {
                     const yearMatch = line.match(/(\d{4})/);
                     if (yearMatch) {
-                        year = yearMatch[1];
-                        console.log('Found year:', year);
-                    }
-                }
-                
-                // Look for parts (very flexible)
-                if (line.startsWith('- ') || line.startsWith('• ') || line.match(/^\d+\./)) {
-                    let part = line.replace(/^[-•\d\.\s]*/, '').trim();
-                    if (part && part.length > 2 && !parts.includes(part)) {
-                        parts.push(part);
-                        console.log('Found part:', part);
+                        applianceData.year = yearMatch[1];
                     }
                 }
             });
 
-            console.log('🎯 PARSED DATA:', { appliance, year, parts });
+            console.log('Parsed appliance data:', applianceData);
+            showStep1Results();
+        }
 
-            // Show parsed data for debugging
+        function showStep1Results() {
+            let html = '<h2>🎯 Analysis Results</h2>';
+            
+            // Step 1: Age Information
+            html += '<div class="step-results">';
+            html += '<div class="appliance-info">';
+            
+            if (applianceData.type) {
+                html += `<h3>📱 Appliance Type</h3><p class="appliance-type">${applianceData.type}</p>`;
+            }
+            
+            if (applianceData.year) {
+                const currentYear = new Date().getFullYear();
+                const age = currentYear - parseInt(applianceData.year);
+                html += `<h3>📅 Age Estimate</h3>`;
+                html += `<p class="age-info">Manufacturing Year: <strong>${applianceData.year}</strong></p>`;
+                html += `<p class="age-info">Estimated Age: <strong>${age} years old</strong></p>`;
+            }
+            
+            html += '</div>';
+
+            // Step 2: Option to get common parts
             html += `
-                <div style="background: #e8f5e8; padding: 20px; margin: 20px 0; border-radius: 8px; border: 2px solid #4caf50;">
-                    <h4>🎯 PARSED DATA:</h4>
-                    <p><strong>Appliance:</strong> "${appliance}"</p>
-                    <p><strong>Year:</strong> "${year}"</p>
-                    <p><strong>Parts:</strong> [${parts.join(', ')}]</p>
+                <div class="next-step-section">
+                    <h3>🔧 Want to see common parts that fail?</h3>
+                    <button class="step-btn" onclick="getCommonParts()" id="partsBtn">
+                        <i class="fas fa-tools"></i> Show Common Parts
+                    </button>
                 </div>
             `;
 
-            // Display structured results if we have any data
-            if (appliance || year || parts.length > 0) {
-                html += '<div class="structured-results">';
-                
-                // Appliance info
-                if (appliance || year) {
-                    html += '<div class="appliance-info">';
-                    if (appliance) {
-                        html += `<h3>📱 Appliance Type</h3><p class="appliance-type">${appliance}</p>`;
-                    }
-                    if (year) {
-                        const currentYear = new Date().getFullYear();
-                        const age = currentYear - parseInt(year);
-                        html += `<h3>📅 Age Estimate</h3>`;
-                        html += `<p class="age-info">Manufacturing Year: <strong>${year}</strong></p>`;
-                        html += `<p class="age-info">Estimated Age: <strong>${age} years old</strong></p>`;
-                    }
-                    html += '</div>';
-                }
+            html += '</div>';
 
-                // Parts with YouTube links
-                if (parts.length > 0) {
-                    html += '<div class="parts-section">';
-                    html += '<h3>🔧 Common Issues</h3>';
-                    html += '<div class="parts-grid">';
-                    
-                    parts.forEach((part) => {
-                        const searchTerm = `${appliance || 'appliance'} ${part} replacement repair tutorial`.toLowerCase();
-                        const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`;
-                        
-                        html += `
-                            <div class="part-card">
-                                <div class="part-name">${part}</div>
-                                <a href="${youtubeUrl}" target="_blank" class="youtube-link">
-                                    <i class="fab fa-youtube"></i> Watch Repair Videos
-                                </a>
-                            </div>
-                        `;
-                    });
-                    
-                    html += '</div></div>';
-                }
-                
-                html += '</div>';
-            }
-
-            // Business links
+            // Business links at bottom
             html += `
                 <div class="business-section">
                     <h3>🏢 Professional Services</h3>
@@ -787,6 +874,191 @@
             results.innerHTML = html;
             results.style.display = 'block';
             results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function getCommonParts() {
+            const partsBtn = document.getElementById('partsBtn');
+            const originalText = partsBtn.innerHTML;
+            
+            // Show loading
+            partsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Parts...';
+            partsBtn.disabled = true;
+
+            try {
+                const response = await fetch('/.netlify/functions/analyze-appliance?type=parts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appliance: applianceData.type
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Parts result:', result);
+
+                // Parse the parts list
+                const partLines = result.parts.split('\n').filter(line => line.trim());
+                applianceData.parts = [];
+                
+                partLines.forEach(line => {
+                    const match = line.match(/^\d+\.\s*(.+)$/);
+                    if (match) {
+                        applianceData.parts.push(match[1].trim());
+                    }
+                });
+
+                showStep2Results();
+
+            } catch (error) {
+                console.error('Error getting parts:', error);
+                partsBtn.innerHTML = '❌ Error - Try Again';
+                setTimeout(() => {
+                    partsBtn.innerHTML = originalText;
+                    partsBtn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        function showStep2Results() {
+            let html = '<h2>🎯 Analysis Results</h2>';
+            
+            // Show step 1 results (collapsed)
+            html += '<div class="completed-step">';
+            html += '<div class="appliance-info">';
+            if (applianceData.type) {
+                html += `<h3>📱 ${applianceData.type}</h3>`;
+            }
+            if (applianceData.year) {
+                const age = new Date().getFullYear() - parseInt(applianceData.year);
+                html += `<p class="age-info">Year: ${applianceData.year} (${age} years old)</p>`;
+            }
+            html += '</div></div>';
+
+            // Step 2: Parts results
+            html += '<div class="step-results">';
+            html += '<h3>🔧 Common Parts That Fail</h3>';
+            html += '<div class="parts-list">';
+            
+            applianceData.parts.forEach((part, index) => {
+                html += `<div class="part-item">${index + 1}. ${part}</div>`;
+            });
+            
+            html += '</div>';
+
+            // Step 3: Option to get YouTube videos
+            html += `
+                <div class="next-step-section">
+                    <h3>🎬 Want repair video tutorials?</h3>
+                    <button class="step-btn" onclick="showYouTubeLinks()" id="videoBtn">
+                        <i class="fab fa-youtube"></i> Get Video Tutorials
+                    </button>
+                </div>
+            `;
+
+            // Step 4: Option to get manual info
+            html += `
+                <div class="next-step-section">
+                    <h3>📋 Need service manual info?</h3>
+                    <button class="step-btn secondary" onclick="getManualInfo()" id="manualBtn">
+                        <i class="fas fa-book"></i> Get Manual Info
+                    </button>
+                </div>
+            `;
+
+            html += '</div>';
+
+            // Business links
+            html += `
+                <div class="business-section">
+                    <h3>🏢 Professional Services</h3>
+                    <div class="business-links">
+                        <a href="https://estimatemyfix.com" target="_blank" class="business-link">
+                            📋 Get Repair Estimate
+                        </a>
+                        <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
+                            🚚 Free Appliance Pickup
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            results.innerHTML = html;
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showYouTubeLinks() {
+            // No AI needed - generate YouTube links directly
+            const videoSection = document.querySelector('.next-step-section');
+            let videoHtml = '<div class="youtube-section"><h4>🎬 Repair Video Tutorials</h4><div class="parts-grid">';
+
+            applianceData.parts.forEach(part => {
+                const searchTerm = `${applianceData.type} ${part} replacement repair tutorial`.toLowerCase();
+                const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`;
+                
+                videoHtml += `
+                    <div class="part-card">
+                        <div class="part-name">${part}</div>
+                        <a href="${youtubeUrl}" target="_blank" class="youtube-link">
+                            <i class="fab fa-youtube"></i> Watch Tutorials
+                        </a>
+                    </div>
+                `;
+            });
+
+            videoHtml += '</div></div>';
+            videoSection.outerHTML = videoHtml;
+        }
+
+        async function getManualInfo() {
+            const manualBtn = document.getElementById('manualBtn');
+            const originalText = manualBtn.innerHTML;
+            
+            manualBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Manual Info...';
+            manualBtn.disabled = true;
+
+            try {
+                const response = await fetch('/.netlify/functions/analyze-appliance?type=manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        appliance: applianceData.type,
+                        year: applianceData.year
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // Replace button with manual info
+                const manualSection = manualBtn.closest('.next-step-section');
+                manualSection.innerHTML = `
+                    <div class="manual-info">
+                        <h4>📋 Service Manual Information</h4>
+                        <div class="manual-content">
+                            ${result.manualInfo.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error getting manual info:', error);
+                manualBtn.innerHTML = '❌ Error - Try Again';
+                setTimeout(() => {
+                    manualBtn.innerHTML = originalText;
+                    manualBtn.disabled = false;
+                }, 3000);
+            }
         }
 
         function createPartCardBasic(partName, partNumber) {
