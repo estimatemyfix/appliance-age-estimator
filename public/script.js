@@ -507,6 +507,8 @@ function displayResults(analysisResult) {
 }
 
 function formatAnalysisContent(content) {
+    console.log('Raw content:', content); // Debug log
+    
     // Enhanced HTML formatting for the analysis content
     let formatted = content;
     
@@ -517,11 +519,11 @@ function formatAnalysisContent(content) {
     // Convert bold text
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="highlight">$1</strong>');
     
-    // Create clickable Amazon links
+    // Enhanced Amazon link parsing - multiple patterns
     formatted = formatted.replace(
-        /Amazon:\s*([^<\n]+)/g, 
+        /🛒\s*\*\*Amazon:\*\*\s*(.+?)(?=\n|$)/g, 
         function(match, searchTerm) {
-            const cleanTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
+            const cleanTerm = searchTerm.replace(/[\[\]"*]/g, '').trim();
             const encodedTerm = encodeURIComponent(cleanTerm);
             return `<a href="https://www.amazon.com/s?k=${encodedTerm}" target="_blank" class="purchase-link amazon-link">
                 <i class="fab fa-amazon"></i>
@@ -531,11 +533,26 @@ function formatAnalysisContent(content) {
         }
     );
     
-    // Create clickable eBay links
+    // Alternative Amazon pattern
     formatted = formatted.replace(
-        /eBay:\s*([^<\n]+)/g, 
+        /Amazon:\s*([^\n<]+)/g, 
         function(match, searchTerm) {
-            const cleanTerm = searchTerm.replace(/[^\w\s-]/g, '').trim();
+            const cleanTerm = searchTerm.replace(/[\[\]"*🛒]/g, '').replace(/https?:\/\/[^\s]+/g, '').trim();
+            if (cleanTerm.length < 3) return match; // Skip if too short
+            const encodedTerm = encodeURIComponent(cleanTerm);
+            return `<a href="https://www.amazon.com/s?k=${encodedTerm}" target="_blank" class="purchase-link amazon-link">
+                <i class="fab fa-amazon"></i>
+                <span>Buy on Amazon</span>
+                <small>${cleanTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Enhanced eBay link parsing - multiple patterns
+    formatted = formatted.replace(
+        /🛒\s*\*\*eBay:\*\*\s*(.+?)(?=\n|$)/g, 
+        function(match, searchTerm) {
+            const cleanTerm = searchTerm.replace(/[\[\]"*]/g, '').trim();
             const encodedTerm = encodeURIComponent(cleanTerm);
             return `<a href="https://www.ebay.com/sch/i.html?_nkw=${encodedTerm}" target="_blank" class="purchase-link ebay-link">
                 <i class="fas fa-gavel"></i>
@@ -545,39 +562,98 @@ function formatAnalysisContent(content) {
         }
     );
     
-    // Create YouTube repair video links - specifically for part replacement
+    // Alternative eBay pattern
     formatted = formatted.replace(
-        /YouTube:\s*"([^"]+)"/g, 
+        /eBay:\s*([^\n<]+)/g, 
         function(match, searchTerm) {
-            // Enhance search term to focus on replacement/repair
-            const repairTerm = searchTerm + " replacement repair how to replace";
+            const cleanTerm = searchTerm.replace(/[\[\]"*🛒]/g, '').replace(/https?:\/\/[^\s]+/g, '').trim();
+            if (cleanTerm.length < 3) return match; // Skip if too short
+            const encodedTerm = encodeURIComponent(cleanTerm);
+            return `<a href="https://www.ebay.com/sch/i.html?_nkw=${encodedTerm}" target="_blank" class="purchase-link ebay-link">
+                <i class="fas fa-gavel"></i>
+                <span>Buy on eBay</span>
+                <small>${cleanTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Enhanced YouTube repair video links - specifically for top 5 replacement parts
+    formatted = formatted.replace(
+        /🎥\s*\*\*YouTube:\*\*\s*"([^"]+)"/g, 
+        function(match, searchTerm) {
+            // Enhance search term to focus on replacement/repair for top 5 parts
+            const repairTerm = `${searchTerm} replacement repair how to replace install fix tutorial step by step`;
             const encodedTerm = encodeURIComponent(repairTerm);
             return `<a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="video-link youtube-link">
                 <i class="fab fa-youtube"></i>
-                <span>Watch Repair Video</span>
+                <span>Watch Repair Tutorial</span>
                 <small>How to replace: ${searchTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Alternative YouTube pattern without emoji
+    formatted = formatted.replace(
+        /YouTube:\s*"([^"]+)"/g, 
+        function(match, searchTerm) {
+            const repairTerm = `${searchTerm} replacement repair how to replace install fix tutorial step by step`;
+            const encodedTerm = encodeURIComponent(repairTerm);
+            return `<a href="https://www.youtube.com/results?search_query=${encodedTerm}" target="_blank" class="video-link youtube-link">
+                <i class="fab fa-youtube"></i>
+                <span>Watch Repair Tutorial</span>
+                <small>How to replace: ${searchTerm}</small>
+            </a>`;
+        }
+    );
+    
+    // Handle any remaining unformatted links that might contain URLs
+    formatted = formatted.replace(
+        /https:\/\/www\.amazon\.com\/s\?k=([^&\s]+)/g,
+        function(match, searchParam) {
+            const decodedTerm = decodeURIComponent(searchParam).replace(/\+/g, ' ');
+            return `<a href="${match}" target="_blank" class="purchase-link amazon-link">
+                <i class="fab fa-amazon"></i>
+                <span>Buy on Amazon</span>
+                <small>${decodedTerm}</small>
+            </a>`;
+        }
+    );
+    
+    formatted = formatted.replace(
+        /https:\/\/www\.ebay\.com\/sch\/[^?\s]*\?[^&]*_nkw=([^&\s]+)/g,
+        function(match, searchParam) {
+            const decodedTerm = decodeURIComponent(searchParam).replace(/\+/g, ' ');
+            return `<a href="${match}" target="_blank" class="purchase-link ebay-link">
+                <i class="fas fa-gavel"></i>
+                <span>Buy on eBay</span>
+                <small>${decodedTerm}</small>
             </a>`;
         }
     );
     
     // Convert price ranges to highlighted spans
     formatted = formatted.replace(/\$(\d+)-\$(\d+)/g, '<span class="price-range">$$$1-$$$2</span>');
-    formatted = formatted.replace(/\$(\d+)/g, '<span class="price">$$$1</span>');
+    formatted = formatted.replace(/\$(\d+(?:\.\d{2})?)/g, '<span class="price">$$$1</span>');
     
-    // Convert part numbers to highlighted spans
-    formatted = formatted.replace(/([A-Z0-9]{6,})/g, '<span class="part-number">$1</span>');
+    // Convert part numbers to highlighted spans (more specific pattern)
+    formatted = formatted.replace(/\b([A-Z]{2,3}\d{2}[A-Z]\d{4,5}|[A-Z0-9]{6,12})\b/g, '<span class="part-number">$1</span>');
     
-    // Create problem cards for numbered issues
+    // Create problem cards for numbered issues (enhanced to capture top 5 replacement parts)
     formatted = formatted.replace(
-        /(\d+\.\s+)([^\n:]+):\s*([^\n]+)/g,
+        /(\d+\.\s+)([^:\n]+):\s*([^\n]+(?:\n(?!\d+\.)[^\n]+)*)/g,
         function(match, number, problemTitle, description) {
+            // Check if this is about replacement parts
+            const isReplacementPart = /(?:replace|replacement|part|component|element|motor|pump|belt|filter)/i.test(problemTitle + description);
+            const cardClass = isReplacementPart ? 'problem-card replacement-part' : 'problem-card';
+            
             return `
-                <div class="problem-card">
+                <div class="${cardClass}">
                     <div class="problem-header">
                         <span class="problem-number">${number.replace('.', '')}</span>
                         <h4 class="problem-title">${problemTitle}</h4>
+                        ${isReplacementPart ? '<span class="part-badge">🔧 Replacement Part</span>' : ''}
                     </div>
-                    <p class="problem-description">${description}</p>
+                    <p class="problem-description">${description.replace(/\n/g, '<br>')}</p>
                 </div>
             `;
         }
@@ -646,6 +722,7 @@ function formatAnalysisContent(content) {
         .replace(/<p>(<ul)/g, '$1')    // Don't wrap lists in paragraphs
         .replace(/(<\/ul>)<\/p>/g, '$1'); // Don't wrap lists in paragraphs
     
+    console.log('Formatted content:', formatted); // Debug log
     return formatted;
 }
 

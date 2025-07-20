@@ -1433,6 +1433,7 @@ body {
     align-items: center;
     gap: var(--space-md);
     margin-bottom: var(--space-sm);
+    flex-wrap: wrap;
 }
 
 .problem-number {
@@ -1773,6 +1774,34 @@ body {
     border-radius: var(--radius-md);
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+/* ================================
+   REPLACEMENT PARTS ENHANCEMENTS
+   ================================ */
+
+.problem-card.replacement-part {
+    border-left: 4px solid #4facfe;
+    background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(79, 172, 254, 0.05));
+}
+
+.problem-card.replacement-part:hover {
+    border-color: rgba(79, 172, 254, 0.5);
+    box-shadow: var(--shadow-medium), 0 0 20px rgba(79, 172, 254, 0.2);
+}
+
+.part-badge {
+    background: var(--gradient-premium);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: auto;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+}
+
+
 
 /* ================================
    MOBILE RESPONSIVE UPDATES
