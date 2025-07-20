@@ -663,84 +663,110 @@
         }
 
         function displayResults(analysis) {
-            console.log('Displaying analysis:', analysis);
+            console.log('🔍 RAW AI RESPONSE:', analysis);
             let html = '<h2>🎯 Analysis Results</h2>';
-            
-            // Parse the analysis to extract structured info
+
+            // DEBUG: Show raw response first
+            html += `
+                <div style="background: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 8px; border: 2px solid #999;">
+                    <h4>🐛 DEBUG - Raw AI Response:</h4>
+                    <pre style="white-space: pre-wrap; font-family: monospace; background: white; padding: 15px; border-radius: 5px;">${analysis}</pre>
+                </div>
+            `;
+
+            // Try to parse but be very flexible
             const lines = analysis.split('\n');
             let appliance = '';
             let year = '';
             let parts = [];
             
-            lines.forEach(line => {
+            console.log('🔍 PARSING LINES:', lines);
+
+            lines.forEach((line, index) => {
                 line = line.trim();
-                if (line.startsWith('Appliance:')) {
-                    appliance = line.replace('Appliance:', '').trim();
-                } else if (line.includes('Manufacturing Year:')) {
-                    year = line.replace(/.*Manufacturing Year:\s*/, '').trim();
-                } else if (line.startsWith('- ') || line.startsWith('• ')) {
-                    // Extract part name
-                    const part = line.replace(/^[-•]\s*/, '').trim();
-                    if (part && !parts.includes(part)) {
+                console.log(`Line ${index}: "${line}"`);
+                
+                // Look for appliance type (very flexible)
+                if (line.toLowerCase().includes('appliance') && line.includes(':')) {
+                    appliance = line.split(':')[1]?.trim() || '';
+                    console.log('Found appliance:', appliance);
+                }
+                
+                // Look for year (very flexible) 
+                if (line.toLowerCase().includes('year') && line.includes(':')) {
+                    const yearMatch = line.match(/(\d{4})/);
+                    if (yearMatch) {
+                        year = yearMatch[1];
+                        console.log('Found year:', year);
+                    }
+                }
+                
+                // Look for parts (very flexible)
+                if (line.startsWith('- ') || line.startsWith('• ') || line.match(/^\d+\./)) {
+                    let part = line.replace(/^[-•\d\.\s]*/, '').trim();
+                    if (part && part.length > 2 && !parts.includes(part)) {
                         parts.push(part);
+                        console.log('Found part:', part);
                     }
                 }
             });
 
-            console.log('Parsed data:', { appliance, year, parts });
+            console.log('🎯 PARSED DATA:', { appliance, year, parts });
 
-            // Display structured results
-            html += '<div class="structured-results">';
-            
-            // Appliance info
-            if (appliance || year) {
-                html += '<div class="appliance-info">';
-                if (appliance) {
-                    html += `<h3>📱 Appliance Type</h3><p class="appliance-type">${appliance}</p>`;
-                }
-                if (year) {
-                    const currentYear = new Date().getFullYear();
-                    const age = currentYear - parseInt(year);
-                    html += `<h3>📅 Age Estimate</h3>`;
-                    html += `<p class="age-info">Manufacturing Year: <strong>${year}</strong></p>`;
-                    html += `<p class="age-info">Estimated Age: <strong>${age} years old</strong></p>`;
-                }
-                html += '</div>';
-            }
+            // Show parsed data for debugging
+            html += `
+                <div style="background: #e8f5e8; padding: 20px; margin: 20px 0; border-radius: 8px; border: 2px solid #4caf50;">
+                    <h4>🎯 PARSED DATA:</h4>
+                    <p><strong>Appliance:</strong> "${appliance}"</p>
+                    <p><strong>Year:</strong> "${year}"</p>
+                    <p><strong>Parts:</strong> [${parts.join(', ')}]</p>
+                </div>
+            `;
 
-            // Common issues with YouTube links
-            if (parts.length > 0) {
-                html += '<div class="parts-section">';
-                html += '<h3>🔧 Common Issues</h3>';
-                html += '<div class="parts-grid">';
+            // Display structured results if we have any data
+            if (appliance || year || parts.length > 0) {
+                html += '<div class="structured-results">';
                 
-                parts.forEach((part, index) => {
-                    const searchTerm = `${appliance || 'appliance'} ${part} replacement repair tutorial`.toLowerCase();
-                    const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`;
+                // Appliance info
+                if (appliance || year) {
+                    html += '<div class="appliance-info">';
+                    if (appliance) {
+                        html += `<h3>📱 Appliance Type</h3><p class="appliance-type">${appliance}</p>`;
+                    }
+                    if (year) {
+                        const currentYear = new Date().getFullYear();
+                        const age = currentYear - parseInt(year);
+                        html += `<h3>📅 Age Estimate</h3>`;
+                        html += `<p class="age-info">Manufacturing Year: <strong>${year}</strong></p>`;
+                        html += `<p class="age-info">Estimated Age: <strong>${age} years old</strong></p>`;
+                    }
+                    html += '</div>';
+                }
+
+                // Parts with YouTube links
+                if (parts.length > 0) {
+                    html += '<div class="parts-section">';
+                    html += '<h3>🔧 Common Issues</h3>';
+                    html += '<div class="parts-grid">';
                     
-                    html += `
-                        <div class="part-card">
-                            <div class="part-name">${part}</div>
-                            <a href="${youtubeUrl}" target="_blank" class="youtube-link">
-                                <i class="fab fa-youtube"></i> Watch Repair Videos
-                            </a>
-                        </div>
-                    `;
-                });
+                    parts.forEach((part) => {
+                        const searchTerm = `${appliance || 'appliance'} ${part} replacement repair tutorial`.toLowerCase();
+                        const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`;
+                        
+                        html += `
+                            <div class="part-card">
+                                <div class="part-name">${part}</div>
+                                <a href="${youtubeUrl}" target="_blank" class="youtube-link">
+                                    <i class="fab fa-youtube"></i> Watch Repair Videos
+                                </a>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div></div>';
+                }
                 
-                html += '</div></div>';
-            }
-
-            // Fallback - if parsing fails, show raw content
-            if (!appliance && !year && parts.length === 0) {
-                html += `
-                    <div class="raw-results">
-                        <h3>📋 Analysis</h3>
-                        <div class="analysis-content">
-                            ${analysis.replace(/\n/g, '<br>')}
-                        </div>
-                    </div>
-                `;
+                html += '</div>';
             }
 
             // Business links
@@ -757,8 +783,6 @@
                     </div>
                 </div>
             `;
-
-            html += '</div>';
 
             results.innerHTML = html;
             results.style.display = 'block';
