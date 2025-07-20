@@ -566,106 +566,28 @@
         }
 
         function displayResults(analysis) {
-            let html = '<h2>Analysis Results</h2>';
+            let html = '<h2>🎯 Analysis Results</h2>';
             
-            const lines = analysis.split('\n');
-            let ageContent = '';
-            let partsContent = '';
-            let inAgeSection = false;
-            let inPartsSection = false;
-            let foundParts = [];
-
-            // Parse content
-            for (let line of lines) {
-                line = line.trim();
-                if (!line) continue;
-
-                if (line.includes('## AGE')) {
-                    inAgeSection = true;
-                    inPartsSection = false;
-                    continue;
-                }
-                
-                if (line.includes('## TOP 5')) {
-                    inAgeSection = false;
-                    inPartsSection = true;
-                    continue;
-                }
-
-                if (inAgeSection) {
-                    ageContent += line + '\n';
-                }
-
-                if (inPartsSection) {
-                    partsContent += line + '\n';
-                }
-            }
-
-            // Display age section
-            if (ageContent) {
-                html += '<div class="age-section"><h3>Appliance Age</h3>';
-                const ageLines = ageContent.split('\n').filter(l => l.trim());
-                ageLines.forEach(line => {
-                    if (line.trim()) {
-                        html += `<p>${line}</p>`;
-                    }
-                });
-                html += '</div>';
-            }
-
-            // Display parts section (without video links initially)
-            if (partsContent) {
-                html += '<div class="parts-section"><h3>Common Part Failures</h3>';
-
-                const partLines = partsContent.split('\n').filter(l => l.trim());
-                let currentPart = '';
-                let partNumber = '';
-
-                for (let line of partLines) {
-                    if (/^\d+\.\s/.test(line)) {
-                        // Save previous part
-                        if (currentPart && partNumber) {
-                            html += createPartCardBasic(currentPart, partNumber);
-                            foundParts.push(currentPart);
-                        }
-                        // Start new part
-                        currentPart = line.replace(/^\d+\.\s\*\*/, '').replace('**', '');
-                        partNumber = '';
-                    } else if (line.includes('Part Number:')) {
-                        partNumber = line.replace('Part Number:', '').trim();
-                    }
-                }
-
-                // Add the last part
-                if (currentPart && partNumber) {
-                    html += createPartCardBasic(currentPart, partNumber);
-                    foundParts.push(currentPart);
-                }
-
-                // Add video request button
-                html += `
-                    <div class="video-request-section">
-                        <button class="video-request-btn" onclick="requestVideoLinks(${JSON.stringify(foundParts).replace(/"/g, '&quot;')})">
-                            <i class="fab fa-youtube"></i> Get Repair Video Tutorials
-                        </button>
-                        <p>Click to get YouTube search links for these parts</p>
-                    </div>
-                `;
-
-                html += '</div>';
-            }
-
-            // Add business section
+            // Simple display - just show whatever the AI returned
             html += `
-                <div class="business-section">
-                    <h3>Professional Services</h3>
-                    <div class="business-links">
-                        <a href="https://estimatemyfix.com" target="_blank" class="business-link">
-                            Get Repair Estimate
-                        </a>
-                        <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
-                            Free Appliance Pickup
-                        </a>
+                <div class="simple-results">
+                    <div class="age-result">
+                        <h3>📅 Age Estimate</h3>
+                        <div class="age-content">
+                            ${analysis.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                    
+                    <div class="business-section">
+                        <h3>🔧 Professional Services</h3>
+                        <div class="business-links">
+                            <a href="https://estimatemyfix.com" target="_blank" class="business-link">
+                                📋 Get Repair Estimate
+                            </a>
+                            <a href="https://freelocalappliancepickup.com" target="_blank" class="business-link">
+                                🚚 Free Appliance Pickup
+                            </a>
+                        </div>
                     </div>
                 </div>
             `;
