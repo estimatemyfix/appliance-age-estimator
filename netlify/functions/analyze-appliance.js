@@ -125,37 +125,38 @@ async function performMainAnalysis(event, headers) {
     const base64Image = file.content.toString('base64');
     console.log('Image converted to base64, length:', base64Image.length);
 
-    // Simple prompt - just age and parts, no video links
-    const prompt = `Analyze this appliance image and provide ONLY:
+    // NUCLEAR PROMPT - Forces AI to ALWAYS give age estimates and parts
+    const prompt = `REQUIRED TASK: You MUST analyze this appliance image and provide age estimates and parts information. Do NOT say you cannot determine age - make educated estimates based on visual design cues, style, technology visible, wear patterns, etc.
 
-1. What type of appliance this is
-2. Estimate its age (manufacturing year and current age)
-3. List the 5 most common parts that fail on this appliance type with part numbers
-
-Format your response EXACTLY like this:
+MANDATORY FORMAT - Follow this EXACT structure:
 
 ## AGE
-Manufacturing Year: 2015
-Current Age: 9 years old
+Manufacturing Year: [ESTIMATE based on design/style/technology - REQUIRED]
+Current Age: [Calculate from estimated year - REQUIRED]
 
 ## TOP 5 COMMON PART FAILURES
 
-1. **Heating Element**
-   Part Number: WE11X10018
+1. **[Part Name]**
+   Part Number: [Real part number for this appliance type]
 
-2. **Door Seal**
-   Part Number: WH08X10036
+2. **[Part Name]**
+   Part Number: [Real part number for this appliance type]
 
-3. **Thermal Fuse**
-   Part Number: WE4X750
+3. **[Part Name]**
+   Part Number: [Real part number for this appliance type]
 
-4. **Drum Belt**
-   Part Number: WE12M29
+4. **[Part Name]**
+   Part Number: [Real part number for this appliance type]
 
-5. **Control Board**
-   Part Number: WE04X25437
+5. **[Part Name]**
+   Part Number: [Real part number for this appliance type]
 
-Be specific with real part numbers for this appliance type.`;
+CRITICAL REQUIREMENTS:
+- You MUST estimate an age even if uncertain
+- Use visual design cues (style, controls, display type, etc.)
+- Provide 5 real part numbers for the specific appliance type
+- Follow the exact format above
+- Do NOT include any other text or disclaimers`;
 
     console.log('Making OpenAI request for main analysis...');
 
