@@ -1396,37 +1396,7 @@ body {
     color: var(--text-primary);
 }
 
-/* ================================
-   PROBLEM CARDS
-   ================================ */
 
-.problem-card {
-    background: var(--glass-bg);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-lg);
-    margin: var(--space-md) 0;
-    position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-}
-
-.problem-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: var(--gradient-accent);
-}
-
-.problem-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
-    border-color: rgba(245, 87, 108, 0.3);
-}
 
 .problem-header {
     display: flex;
@@ -1832,4 +1802,175 @@ body {
    MOBILE RESPONSIVE UPDATES
    ================================ */
 
- 
+/* ================================
+   ACTION BUTTONS CONTAINER
+   ================================ */
+
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+    padding: var(--space-md);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.action-buttons .purchase-link,
+.action-buttons .video-link {
+    margin: 0;
+    flex: 1;
+    min-width: 140px;
+    text-align: center;
+    justify-content: center;
+}
+
+/* Enhanced problem cards for nuclear consumer appeal */
+.problem-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    margin: var(--space-lg) 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.problem-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.problem-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: var(--gradient-primary);
+    transition: left 0.6s ease;
+}
+
+.problem-card:hover::before {
+    left: 100%;
+}
+
+.problem-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.problem-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.problem-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+}
+
+.problem-description {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 var(--space-md) 0;
+    font-size: 1rem;
+}
+
+/* Analysis content structure */
+.analysis-content {
+    max-width: none;
+}
+
+.analysis-section {
+    margin-bottom: var(--space-xl-2);
+}
+
+.analysis-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-xl) 0;
+    padding: var(--space-lg) 0 var(--space-md) 0;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.analysis-section-title i {
+    color: var(--accent-blue);
+    font-size: 1.6rem;
+}
+
+.analysis-subsection-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: var(--space-xl) 0 var(--space-md) 0;
+    padding-left: var(--space-md);
+    border-left: 3px solid var(--accent-blue);
+}
+
+/* Enhanced text styling */
+.analysis-content p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--space-md);
+    font-size: 1rem;
+}
+
+.analysis-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* Price and part number highlighting */
+.price-range, .price {
+    display: inline-block;
+    background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 0 2px;
+}
+
+.part-number {
+    display: inline-block;
+    background: linear-gradient(135deg, #6c5ce7 0%, #5a4fcf 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-family: 'Courier New', monospace;
+    margin: 0 2px;
+    letter-spacing: 0.5px;
+} 
