@@ -1,4 +1,4 @@
-const { multipartParser } = require('lambda-multipart-parser');
+const multipart = require('lambda-multipart-parser');
 
 exports.handler = async (event, context) => {
     // CORS headers
@@ -22,21 +22,32 @@ exports.handler = async (event, context) => {
     }
 
     try {
-        // Parse multipart form data
-        const parsed = await multipartParser(event);
-        const { images } = parsed;
+        console.log('Starting analysis...');
 
-        if (!images || images.length === 0) {
+        // Parse multipart form data
+        const result = await multipart.parse(event);
+        console.log('Parsed result:', { 
+            hasFiles: !!result.files, 
+            fileCount: result.files?.length || 0 
+        });
+
+        if (!result.files || result.files.length === 0) {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'No images provided' })
+                body: JSON.stringify({ error: 'No images uploaded' })
             };
         }
 
         // Take the first image for analysis
-        const image = images[0];
-        const base64Image = image.content.toString('base64');
+        const file = result.files[0];
+        console.log('Processing file:', { 
+            contentType: file.contentType, 
+            filename: file.filename, 
+            size: file.content.length 
+        });
+
+        const base64Image = file.content.toString('base64');
 
         // Simple, focused AI prompt
         const prompt = `Analyze this appliance image and provide ONLY:
@@ -67,6 +78,8 @@ Current Age: [X years old]
 
 Be specific with real part numbers and appliance type.`;
 
+        console.log('Calling OpenAI API...');
+
         // Call OpenAI API
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -83,7 +96,7 @@ Be specific with real part numbers and appliance type.`;
                             { type: 'text', text: prompt },
                             {
                                 type: 'image_url',
-                                image_url: { url: `data:${image.contentType};base64,${base64Image}` }
+                                image_url: { url: `data:${file.contentType};base64,${base64Image}` }
                             }
                         ]
                     }
@@ -93,12 +106,18 @@ Be specific with real part numbers and appliance type.`;
             })
         });
 
+        console.log('OpenAI response status:', response.status);
+
         if (!response.ok) {
-            throw new Error(`OpenAI API error: ${response.status}`);
+            const errorText = await response.text();
+            console.error('OpenAI API error:', errorText);
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
         }
 
         const aiResponse = await response.json();
         const analysis = aiResponse.choices[0].message.content;
+
+        console.log('Analysis completed successfully');
 
         return {
             statusCode: 200,
